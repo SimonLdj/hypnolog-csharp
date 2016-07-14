@@ -10,6 +10,7 @@ namespace VDebugLib
     public class VDebug
     {
 
+        static private readonly bool isOn = true;
         static private readonly Uri baseAddress = new Uri("http://localhost:7000/in");
 
         static VDebug()
@@ -18,15 +19,17 @@ namespace VDebugLib
 
         public static void Init()
         {
+            if (!isOn) return;
             Log("New session");
         }
 
         public static void Log(object obj)
         {
+            if (!isOn) return;
             var wait = LogAsync(obj).Result;
         }
 
-        public static async Task<string> LogAsync(object obj)
+        private static async Task<string> LogAsync(object obj)
         {
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
