@@ -11,7 +11,7 @@ namespace VDebugLib
     {
 
         static private readonly bool isOn = true;
-        static private readonly Uri baseAddress = new Uri("http://localhost:7000/in");
+        static private readonly Uri baseAddress = new Uri("http://localhost:7000/vdebug/in");
 
         static VDebug()
         {
@@ -31,13 +31,22 @@ namespace VDebugLib
 
         private static async Task<string> LogAsync(object obj)
         {
+            // TODO: warp any data in valid VDebug-log object
+
+            // if logged data is string, warp it as an object
+            // This is done because VDebug server expect only JSON content type
+            if (obj is string)
+            {
+                obj = new { stringValue = obj };
+            }
+
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             var result = client.PostAsJsonAsync(baseAddress.ToString(), obj).Result;
 
             string resultContent = result.Content.ReadAsStringAsync().Result;
 
-            // Check that response was successful or throw exception
+            // TODO: Check that response was successful or throw exception
             //response.EnsureSuccessStatusCode();
 
             // Read result as Contact
@@ -45,6 +54,5 @@ namespace VDebugLib
 
             return resultContent;
         }
-
     }
 }
