@@ -20,7 +20,11 @@ namespace VDebugLib
         public static void Init()
         {
             if (!isOn) return;
-            Log("New session");
+
+            // create special 'new session' type
+            // TODO: make new session type more strongly typed (?)
+            var newSessionObj = new {type = "newSession", value = Guid.NewGuid()};
+            var wait = LogAsync(newSessionObj).Result;
         }
 
         public static void Log(object data, string name = null)
