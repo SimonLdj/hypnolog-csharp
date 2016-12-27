@@ -31,18 +31,14 @@ namespace VDebugLib
 
         private static async Task<string> LogAsync(object obj)
         {
-            // TODO: warp any data in valid VDebug-log object
-
-            // if logged data is string, warp it as an object
+            // warp any data into valid VDebug JSON
             // This is done because VDebug server expect only JSON content type
-            if (obj is string)
-            {
-                obj = new { stringValue = obj };
-            }
+            var json = ConvertToVDebugObject(obj);
 
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
-            var result = client.PostAsJsonAsync(baseAddress.ToString(), obj).Result;
+            // NOTE: the data sent to server must be valid JSON string
+            var result = client.PostAsJsonAsync(baseAddress.ToString(), json).Result;
 
             string resultContent = result.Content.ReadAsStringAsync().Result;
 
@@ -54,5 +50,75 @@ namespace VDebugLib
 
             return resultContent;
         }
+
+        /// <summary>
+        /// Convert given object to valid VDebug object.
+        /// VDebug object is object of this type:
+        /// { type, value }
+        /// Later this object should be converted as is to JSON string.
+        /// All simple C# types and numbers array are known types.
+        /// Any other C# type will be recognized as "object" and customTyep property
+        /// will be add with data about the object type.
+        /// </summary>
+        private static object ConvertToVDebugObject(object obj)
+        {
+            // TODO: Handle Enum type better
+
+            var type = obj.GetType();
+            if (IsSimple(type))
+            {
+                return new {type = obj.GetType().Name, value = obj};
+            }
+            if (IsNumbersArray(type))
+            {
+                return new {type = "numbersArray", value = obj};
+            }
+            return new { type = "object",
+                customTyep = obj.GetType().Name,
+                customFullTyep = obj.GetType().FullName,
+                value = obj };
+        }
+
+        #region Type related help methods
+
+        /// <summary>
+        /// Check if given type is Simple C# type (int, char, double,....)
+        /// </summary>
+        private static bool IsSimple(Type type)
+        {
+            return type.IsPrimitive
+                || type.IsEnum
+                || type == typeof(string)
+                || type == typeof(decimal)
+                || type == typeof(Array);
+        }
+
+        /// <summary>
+        /// Check if given type is array of numbers
+        /// </summary>
+        private static bool IsNumbersArray(Type type)
+        {
+            return type.IsArray && IsNumber(type.GetElementType());
+        }
+
+        /// <summary>
+        /// Check if given type is a number
+        /// </summary>
+        private static bool IsNumber(Type type)
+        {
+            return type == typeof (sbyte)
+                || type == typeof (byte)
+                || type == typeof (short)
+                || type == typeof (ushort)
+                || type == typeof (int)
+                || type == typeof (uint)
+                || type == typeof (long)
+                || type == typeof (ulong)
+                || type == typeof (float)
+                || type == typeof (double)
+                || type == typeof (decimal);
+        }
+
+        #endregion Type related help methods
     }
 }
