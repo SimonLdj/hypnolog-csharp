@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Dynamic;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace VDebugLib
@@ -17,24 +15,49 @@ namespace VDebugLib
         {
         }
 
+        #region Public methods
+
         public static void Init()
         {
             if (!isOn) return;
             Log("New session");
         }
 
-        public static void Log(object obj)
+        public static void Log(object data, string name = null)
         {
             if (!isOn) return;
-            var wait = LogAsync(obj).Result;
-        }
 
-        private static async Task<string> LogAsync(object obj)
-        {
             // warp any data into valid VDebug JSON
             // This is done because VDebug server expect only JSON content type
-            var json = ConvertToVDebugObject(obj);
+            dynamic json = ConvertToVDebugObject(data);
 
+            if (name != null)
+                json.name = name;
+
+            var wait = LogAsync(json).Result;
+        }
+
+        /// <summary>
+        /// Log variable with its name.
+        /// Variable should be warped in new{} statement (Anonymous object) like this:
+        /// NameLog(new { variable })
+        /// </summary>
+        public static void NameLog<T>(T data)
+        {
+            // TODO: handle somehow wrong usage of "NameLog" function (?). (when not warping variable with new{})
+
+            var firstProperty = typeof (T).GetProperties()[0];
+            var name = firstProperty.Name;
+            var value = firstProperty.GetValue(data);
+            Log(value, name);
+        }
+
+        #endregion Public methods
+
+        #region Private methods
+
+        private static async Task<string> LogAsync(object json)
+        {
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
@@ -57,27 +80,39 @@ namespace VDebugLib
         /// { type, value }
         /// Later this object should be converted as is to JSON string.
         /// All simple C# types and numbers array are known types.
-        /// Any other C# type will be recognized as "object" and customTyep property
+        /// Any other C# type will be recognized as "object" and customType property
         /// will be add with data about the object type.
         /// </summary>
-        private static object ConvertToVDebugObject(object obj)
+        private static dynamic ConvertToVDebugObject(object obj)
         {
             // TODO: Handle Enum type better
 
             var type = obj.GetType();
+
+            // TODO: use some sort of VDebug-log object that extend ExpandoObject but require type and value properties.
+            dynamic json = new ExpandoObject();
+            json.value = obj;
+            json.type = "unknown";
+
             if (IsSimple(type))
             {
-                return new {type = obj.GetType().Name, value = obj};
+                json.type = obj.GetType().Name;
             }
-            if (IsNumbersArray(type))
+            else if (IsNumbersArray(type))
             {
-                return new {type = "numbersArray", value = obj};
+                json.type = "numbersArray";
             }
-            return new { type = "object",
-                customTyep = obj.GetType().Name,
-                customFullTyep = obj.GetType().FullName,
-                value = obj };
+            else
+            {
+                json.type = "object";
+                json.customType = type.Name;
+                json.customFullType = type.FullName;
+            }
+
+            return json;
         }
+
+        #endregion Private methods
 
         #region Type related help methods
 
