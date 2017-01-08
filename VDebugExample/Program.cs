@@ -16,10 +16,14 @@ namespace VDebugExample
             VDebug.Log("Example for logging string from C#");
 
             // Example of logging variable with its name
-            // Note: To log variable with it's name use the "NameLog" function, and warp the
+            // This is good to avoid code like this:
+            // var x = GetSomeValue();
+            // Log("x: " + x);
+            // Then you change the name of 'x' and the logging become misleading.
+            // Note: To log variable with it's name use the "NamedLog" function, and warp the
             // variable with new {} deceleration.
             var walter = "Also known as Mr.White";
-            VDebug.NameLog(new {walter});
+            VDebug.NamedLog(new {walter});
 
             // Example of logging an integer
             VDebug.Log(758593);
@@ -40,7 +44,7 @@ namespace VDebugExample
 
             // Example of logging a custom object with name
             var mySurfBoard = new Surfboard() {Name = "Lib Tech Bowl", Length = 6.2, Volume = 30.8};
-            VDebug.NameLog(new {mySurfBoard});
+            VDebug.NamedLog(new {mySurfBoard});
 
             // Example of logging an anonymous object
             VDebug.Log(new

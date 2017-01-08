@@ -27,7 +27,41 @@ namespace VDebugLib
             var wait = LogAsync(newSessionObj).Result;
         }
 
-        public static void Log(object data, string name = null)
+        /// <summary>
+        /// Log the given object.
+        /// This is the most simple way to do that.
+        /// </summary>
+        public static void Log(object data)
+        {
+            Log(data, null);
+        }
+
+        /// <summary>
+        /// Log variable with its name.
+        /// Variable should be warped in new{} statement (Anonymous object) like this:
+        /// NamedLog(new { variable })
+        /// </summary>
+        public static void NamedLog<T>(T data)
+        {
+            // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
+
+            var firstProperty = typeof (T).GetProperties()[0];
+            var name = firstProperty.Name;
+            var value = firstProperty.GetValue(data);
+            Log(value, name);
+        }
+
+        #endregion Public methods
+
+        #region Private methods
+
+        /// <summary>
+        /// The main sync method to Log.
+        /// This method is private to avoid miss using it and to avoid complicated public API.
+        /// </summary>
+        /// <param name="data">The object to be logged</param>
+        /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
+        private static void Log(object data, string name = null)
         {
             if (!isOn) return;
 
@@ -40,25 +74,6 @@ namespace VDebugLib
 
             var wait = LogAsync(json).Result;
         }
-
-        /// <summary>
-        /// Log variable with its name.
-        /// Variable should be warped in new{} statement (Anonymous object) like this:
-        /// NameLog(new { variable })
-        /// </summary>
-        public static void NameLog<T>(T data)
-        {
-            // TODO: handle somehow wrong usage of "NameLog" function (?). (when not warping variable with new{})
-
-            var firstProperty = typeof (T).GetProperties()[0];
-            var name = firstProperty.Name;
-            var value = firstProperty.GetValue(data);
-            Log(value, name);
-        }
-
-        #endregion Public methods
-
-        #region Private methods
 
         private static async Task<string> LogAsync(object json)
         {
