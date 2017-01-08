@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace VDebugLib
 {
+    /// <summary>
+    /// VDebug is a logging service class.
+    /// This class should work only under Debug, that's why all public methods
+    /// under this class are marked with Conditional("DEBUG") attribute.
+    /// </summary>
     public class VDebug
     {
         #region Properties & Data members
@@ -43,6 +48,8 @@ namespace VDebugLib
 
         #region Public methods
 
+        // NOTE: All public methods should be marked with [Conditional("DEBUG")] attribute
+
         /// <summary>
         /// Initialize the logger. Mark begging of new session.
         /// It is not mandatory to call Initialize but it is recommended to do it as soon as
@@ -52,20 +59,21 @@ namespace VDebugLib
         /// logging action.
         /// </summary>
         /// <param name="serverUri">If given, server URL will be changed.</param>
-        public static bool Initialize(string serverUri = null)
+        [Conditional("DEBUG")]
+        public static void Initialize(string serverUri = null)
         {
             // exit if Off
-            if (!IsOn) return false;
+            if (!IsOn) return;
 
             // Initialize only once
             if (IsInitializes)
             {
                 Debug.Print("VDebug: Initialization was called more than once");
-                return false;
+                return;
             }
 
             // Set new server URL if given
-            if (serverURL != null)
+            if (serverUri != null)
             {
                 ServerUri = new Uri(serverUri);
             }
@@ -76,7 +84,7 @@ namespace VDebugLib
                 Disable();
                 IsInFaultedSate = true;
                 Debug.Print("VDebug: Destination server is down. initialization failed.");
-                return false;
+                return;
             }
 
             // send special 'new session' message
@@ -85,12 +93,12 @@ namespace VDebugLib
             var wait = LogAsync(newSessionObj).Result;
 
             IsInitializes = true;
-            return true;
         }
 
         /// <summary>
         /// Disable the logger.
         /// </summary>
+        [Conditional("DEBUG")]
         public static void Disable()
         {
             IsOn = false;
@@ -100,17 +108,18 @@ namespace VDebugLib
         /// Try to Enable the logger.
         /// If logger in faulted state this may not succeed.
         /// </summary>
-        public static bool Enable()
+        [Conditional("DEBUG")]
+        public static void Enable()
         {
-            if (IsInFaultedSate) return false;
+            if (IsInFaultedSate) return;
             IsOn = true;
-            return true;
         }
 
         /// <summary>
         /// Log the given object.
         /// This is the most simple way to do that.
         /// </summary>
+        [Conditional("DEBUG")]
         public static void Log(object data)
         {
             Log(data, null);
@@ -121,6 +130,7 @@ namespace VDebugLib
         /// Variable should be warped in new{} statement (Anonymous object) like this:
         /// NamedLog(new { variable })
         /// </summary>
+        [Conditional("DEBUG")]
         public static void NamedLog<T>(T data)
         {
             // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
