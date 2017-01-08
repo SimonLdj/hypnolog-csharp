@@ -7,24 +7,47 @@ namespace VDebugLib
 {
     public class VDebug
     {
+        #region Properties & Data members
 
+        /// <summary>
+        /// True if initialization process happed successful
+        /// </summary>
+        public static bool IsInitializes { get; private set; }
         static private readonly bool isOn = true;
         static private readonly Uri baseAddress = new Uri("http://localhost:7000/vdebug/in");
 
+        #endregion Properties & Data mambers
         static VDebug()
         {
+            IsInitializes = false;
         }
 
         #region Public methods
 
-        public static void Init()
+        /// <summary>
+        /// Initialize the logger. Mark begging of new session.
+        /// It is not mandatory to call Initialize but it is recommended to do it as soon as
+        /// possible in the begging of the program. This will help marking the begging
+        /// of new session in a proper way.
+        /// If Initialize was not invoked manually, it will be called implicitly at the first
+        /// logging action.
+        /// </summary>
+        public static void Initialize()
         {
             if (!isOn) return;
 
-            // create special 'new session' type
+            // Initialize only once
+            if (IsInitializes) return;
+
+            // TODO: do not continue if server is down
+            //isOn = IsURLValid();
+
+            // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
-            var newSessionObj = new {type = "newSession", value = Guid.NewGuid()};
+            var newSessionObj = new { type = "newSession", value = Guid.NewGuid() };
             var wait = LogAsync(newSessionObj).Result;
+
+            IsInitializes = true;
         }
 
         /// <summary>
@@ -64,6 +87,10 @@ namespace VDebugLib
         private static void Log(object data, string name = null)
         {
             if (!isOn) return;
+
+            // if initialization was not occurred yet, do it.
+            if (!IsInitializes)
+                Initialize();
 
             // warp any data into valid VDebug JSON
             // This is done because VDebug server expect only JSON content type

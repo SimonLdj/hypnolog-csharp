@@ -10,7 +10,14 @@ namespace VDebugExample
         private static void Main(string[] args)
         {
             Console.WriteLine("Start example");
-            VDebug.Init();
+
+            // Initialize the logger
+            // It is not mandatory to call Initialize but it is recommended to do it as soon as
+            // possible in the begging of the program. This will help marking the begging
+            // of new session in a proper way.
+            // If Initialize was not invoked manually, it will be called implicitly at the first
+            // logging action.
+            VDebug.Initialize();
 
             // Example of logging a string
             VDebug.Log("Example for logging string from C#");
