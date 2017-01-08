@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -13,13 +14,31 @@ namespace VDebugLib
         /// True if initialization process happed successful
         /// </summary>
         public static bool IsInitializes { get; private set; }
-        static private readonly bool isOn = true;
-        static private readonly Uri baseAddress = new Uri("http://localhost:7000/vdebug/in");
+
+        // TODO: find better way to keep logger on/off ? with a global flag?
+        /// <summary>
+        /// Whether the logger is On or Off. true if on.
+        /// By default this is On.
+        /// </summary>
+        public static bool IsOn { get; private set; }
+
+        /// <summary>
+        /// True if logger in faulted state.
+        /// This may occur as a result of failure connecting to the server.
+        /// </summary>
+        public static bool IsInFaultedSate { get; private set; }
+
+        private static Uri ServerUri { get; set; }
 
         #endregion Properties & Data mambers
+
         static VDebug()
         {
             IsInitializes = false;
+            IsOn = true;
+            IsInFaultedSate = false;
+            // TODO: let user set default server by config
+            ServerUri = new Uri("http://localhost:7000/");
         }
 
         #region Public methods
@@ -32,15 +51,33 @@ namespace VDebugLib
         /// If Initialize was not invoked manually, it will be called implicitly at the first
         /// logging action.
         /// </summary>
-        public static void Initialize()
+        /// <param name="serverUri">If given, server URL will be changed.</param>
+        public static bool Initialize(string serverUri = null)
         {
-            if (!isOn) return;
+            // exit if Off
+            if (!IsOn) return false;
 
             // Initialize only once
-            if (IsInitializes) return;
+            if (IsInitializes)
+            {
+                Debug.Print("VDebug: Initialization was called more than once");
+                return false;
+            }
 
-            // TODO: do not continue if server is down
-            //isOn = IsURLValid();
+            // Set new server URL if given
+            if (serverURL != null)
+            {
+                ServerUri = new Uri(serverUri);
+            }
+
+            // Do not continue if server is down
+            if (!IsServerUp())
+            {
+                Disable();
+                IsInFaultedSate = true;
+                Debug.Print("VDebug: Destination server is down. initialization failed.");
+                return false;
+            }
 
             // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
@@ -48,6 +85,26 @@ namespace VDebugLib
             var wait = LogAsync(newSessionObj).Result;
 
             IsInitializes = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Disable the logger.
+        /// </summary>
+        public static void Disable()
+        {
+            IsOn = false;
+        }
+
+        /// <summary>
+        /// Try to Enable the logger.
+        /// If logger in faulted state this may not succeed.
+        /// </summary>
+        public static bool Enable()
+        {
+            if (IsInFaultedSate) return false;
+            IsOn = true;
+            return true;
         }
 
         /// <summary>
@@ -86,7 +143,8 @@ namespace VDebugLib
         /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
         private static void Log(object data, string name = null)
         {
-            if (!isOn) return;
+            // exit if Off
+            if (!IsOn) return;
 
             // if initialization was not occurred yet, do it.
             if (!IsInitializes)
@@ -107,16 +165,22 @@ namespace VDebugLib
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
-            var result = client.PostAsJsonAsync(baseAddress.ToString(), json).Result;
+            var result = client.PostAsJsonAsync(ServerUri.ToString() + "vdebug/in", json).Result;
 
             string resultContent = result.Content.ReadAsStringAsync().Result;
 
-            // TODO: Check that response was successful or throw exception
-            //response.EnsureSuccessStatusCode();
+            try
+            {
+                var response = result.EnsureSuccessStatusCode();
+            }
+            catch
+            {
+                Debug.Print("VDebug: Error sending data. result: " + result.StatusCode.ToString());
+                // TODO: do something on error (stop logging? log again?..)
+                //IsInFaultedSate = true;
+            }
 
-            // Read result as Contact
-            //Contact result = await response.Content.ReadAsAsync<Contact>();
-
+            // TODO: return something useful (true/false?) or nothing...
             return resultContent;
         }
 
@@ -156,6 +220,29 @@ namespace VDebugLib
             }
 
             return json;
+        }
+
+        /// <summary>
+        /// Check if destination server is up and running.
+        /// </summary>
+        /// <returns>True if up</returns>
+        private static bool IsServerUp()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    // TODO: check server status is 200
+                    var temp = client.GetStringAsync(ServerUri.ToString() + "vdebug/status").Result;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    // TODO: log something useful
+                    Debug.Print("VDebug: error while checking if destination server is up: " + ex.Message);
+                    return false;
+                }
+            }
         }
 
         #endregion Private methods
