@@ -140,6 +140,35 @@ namespace VDebugLib
             var value = firstProperty.GetValue(data);
             Log(value, name);
         }
+        /// <summary>
+        /// Wach variable with this name from that sorce.
+        /// Variable should be warped in new{} statement (Anonymous object) like this:
+        /// WatchLog(new { variable })
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void Watch<T>(T data)
+        {
+            //TODO: find a way to use the Log method, duplicated with the log method.
+            // exit if Off
+            if (!IsOn) return;
+
+            // if initialization was not occurred yet, do it.
+            if (!IsInitializes)
+                Initialize();
+
+            var callingMethod = new StackFrame(1, true).GetMethod();
+            var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
+            var firstProperty = typeof(T).GetProperties()[0];
+            var name = scope + "." + firstProperty.Name;
+            var wait = LogAsync(new
+            {
+                type = data.GetType(),
+                name = firstProperty.Name,
+                fullName = scope + "." + firstProperty.Name,
+                value = firstProperty.GetValue(data),
+                debugOption = "watch"
+            }).Result;
+        }
 
         #endregion Public methods
 

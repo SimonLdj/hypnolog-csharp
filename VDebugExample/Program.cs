@@ -66,6 +66,21 @@ namespace VDebugExample
                 },
                 Color = Colors.Red
             });
+
+            // Example of watching a variable.
+            var sky = "Blue clear sky";
+            VDebug.Watch(new { sky });
+            // Change the value and watch it changging.
+            sky = "Gray foggy sky";
+            VDebug.Watch(new { sky });
+            // Example of watching two variables with the same name, in diffrent scopes.
+            CheckTheWeather();
+        }
+
+        private static void CheckTheWeather()
+        {
+            var sky = "Blood moon night";
+            VDebug.Watch(new { sky });
         }
 
         private enum Colors
