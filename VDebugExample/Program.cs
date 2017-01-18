@@ -77,6 +77,12 @@ namespace VDebugExample
             VDebug.Watch(new { sky });
             // Example of watching two variables with the same name, in different scopes.
             CheckTheWeather();
+
+            //Example of loging with tags.
+            // Note: To log with tags you should add your tags with the 'Tag' method and then invoke your the logging method of your choice.
+            VDebug.Tag("#info #network").NamedLog(new { sky });
+            VDebug.Tag("#network").Log("network");
+            VDebug.Tag("#info").Log("info");
         }
 
         /// <summary>

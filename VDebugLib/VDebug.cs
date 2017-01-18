@@ -11,7 +11,7 @@ namespace VDebugLib
     /// This class should work only under Debug, that's why all public methods
     /// under this class are marked with Conditional("DEBUG") attribute.
     /// </summary>
-    public class VDebug
+    public static class VDebug
     {
         #region Properties & Data members
 
@@ -170,6 +170,16 @@ namespace VDebugLib
             }).Result;
         }
 
+        /// <summary>
+        /// Return a hypnoTag object, this allow's to add tags to the data being loged.
+        /// After invoking this method, the user can call any of the log method.
+        /// TODO: Add conditional DEBUG. (check what to do if function return value)
+        /// </summary>
+        public static TagsCollection Tag(string tags)
+        {
+            return new TagsCollection(tags);
+        }
+
         #endregion Public methods
 
         #region Private methods
@@ -180,7 +190,7 @@ namespace VDebugLib
         /// </summary>
         /// <param name="data">The object to be logged</param>
         /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
-        private static void Log(object data, string name = null)
+        private static void Log(object data, string name = null, string[] tags = null)
         {
             // exit if Off
             if (!IsOn) return;
@@ -195,6 +205,9 @@ namespace VDebugLib
 
             if (name != null)
                 json.name = name;
+
+            if (tags != null)
+                json.tags = tags;
 
             var wait = LogAsync(json).Result;
         }
@@ -328,5 +341,63 @@ namespace VDebugLib
         }
 
         #endregion Type related help methods
+
+        #region Extensions
+
+        [Conditional("DEBUG")]
+        public static void Log(this TagsCollection tags, object data)
+        {
+            Log(data, name: null, tags: tags.tagsArray);
+        }
+
+        [Conditional("DEBUG")]
+        public static void NamedLog<T>(this TagsCollection tags, T data)
+        {
+            var firstProperty = typeof(T).GetProperties()[0];
+            var name = firstProperty.Name;
+            var value = firstProperty.GetValue(data);
+            Log(value, name, tags: tags.tagsArray);
+        }
+
+        [Conditional("DEBUG")]
+        public static void watch<T>(this TagsCollection tags, T data)
+        {
+            //TODO: find a way to use the Log method, duplicated with the log method.
+            // exit if Off
+            if (!IsOn) return;
+
+            // if initialization was not occurred yet, do it.
+            if (!IsInitializes)
+                Initialize();
+
+            var callingMethod = new StackFrame(1, true).GetMethod();
+            var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
+            var firstProperty = typeof(T).GetProperties()[0];
+            var name = scope + "." + firstProperty.Name;
+            var wait = LogAsync(new
+            {
+                type = data.GetType(),
+                name = firstProperty.Name,
+                fullName = scope + "." + firstProperty.Name,
+                value = firstProperty.GetValue(data),
+                debugOption = "watch"
+            }).Result;
+        }
+
+        #endregion Extension
     }
+
+    #region TagsCollection class
+
+    public class TagsCollection
+    {
+        public string[] tagsArray;
+        private static char[] separator = { '#', ' ' };
+        public TagsCollection(string tags)
+        {
+            tagsArray = tags.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+        }
+    }
+
+    #endregion
 }
