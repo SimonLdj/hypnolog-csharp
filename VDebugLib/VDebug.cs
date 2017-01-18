@@ -90,7 +90,7 @@ namespace VDebugLib
             // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
             var newSessionObj = new { type = "newSession", value = Guid.NewGuid() };
-            var wait = LogAsync(newSessionObj).Result;
+            var wait = SendAsync(newSessionObj).Result;
 
             IsInitializes = true;
         }
@@ -122,7 +122,7 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(object data)
         {
-            Log(data, null);
+            Send(ConvertToVDebugObject(data));
         }
 
         /// <summary>
@@ -138,8 +138,9 @@ namespace VDebugLib
             var firstProperty = typeof (T).GetProperties()[0];
             var name = firstProperty.Name;
             var value = firstProperty.GetValue(data);
-            Log(value, name);
+            Send(ConvertToVDebugObject(value, name));
         }
+
         /// <summary>
         /// Wach variable with this name from that sorce.
         /// Variable should be warped in new{} statement (Anonymous object) like this:
@@ -148,26 +149,17 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Watch<T>(T data)
         {
-            //TODO: find a way to use the Log method, duplicated with the log method.
-            // exit if Off
-            if (!IsOn) return;
-
-            // if initialization was not occurred yet, do it.
-            if (!IsInitializes)
-                Initialize();
-
             var callingMethod = new StackFrame(1, true).GetMethod();
             var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
             var firstProperty = typeof(T).GetProperties()[0];
-            var name = scope + "." + firstProperty.Name;
-            var wait = LogAsync(new
-            {
-                type = data.GetType(),
-                name = firstProperty.Name,
-                fullName = scope + "." + firstProperty.Name,
-                value = firstProperty.GetValue(data),
-                debugOption = "watch"
-            }).Result;
+
+            dynamic json = ConvertToVDebugObject(firstProperty.GetValue(data), firstProperty.Name);
+
+            json.debugOption = "watch";
+            json.fullName = scope + "." + firstProperty.Name;
+
+            Send(json);
+
         }
 
         /// <summary>
@@ -188,9 +180,9 @@ namespace VDebugLib
         /// The main sync method to Log.
         /// This method is private to avoid miss using it and to avoid complicated public API.
         /// </summary>
-        /// <param name="data">The object to be logged</param>
+        /// <param name="json">Vdbug-valid-object to be logged</param>
         /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
-        private static void Log(object data, string name = null, string[] tags = null)
+        private static void Send(object json)
         {
             // exit if Off
             if (!IsOn) return;
@@ -199,20 +191,10 @@ namespace VDebugLib
             if (!IsInitializes)
                 Initialize();
 
-            // warp any data into valid VDebug JSON
-            // This is done because VDebug server expect only JSON content type
-            dynamic json = ConvertToVDebugObject(data);
-
-            if (name != null)
-                json.name = name;
-
-            if (tags != null)
-                json.tags = tags;
-
-            var wait = LogAsync(json).Result;
+            var wait = SendAsync(json).Result;
         }
 
-        private static async Task<string> LogAsync(object json)
+        private static async Task<string> SendAsync(object json)
         {
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
@@ -246,16 +228,20 @@ namespace VDebugLib
         /// Any other C# type will be recognized as "object" and customType property
         /// will be add with data about the object type.
         /// </summary>
-        private static dynamic ConvertToVDebugObject(object obj)
+        private static dynamic ConvertToVDebugObject(object obj, string name = null, string[] tags = null)
         {
             // TODO: Handle Enum type better
-
             var type = obj.GetType();
-
             // TODO: use some sort of VDebug-log object that extend ExpandoObject but require type and value properties.
             dynamic json = new ExpandoObject();
             json.value = obj;
             json.type = "unknown";
+
+            if (name != null)
+                json.name = name;
+
+            if (tags != null)
+                json.tags = tags;
 
             if (IsSimple(type))
             {
@@ -347,7 +333,7 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(this TagsCollection tags, object data)
         {
-            Log(data, name: null, tags: tags.tagsArray);
+            Send(ConvertToVDebugObject(data, name: null, tags: tags.tagsArray));
         }
 
         [Conditional("DEBUG")]
@@ -356,32 +342,22 @@ namespace VDebugLib
             var firstProperty = typeof(T).GetProperties()[0];
             var name = firstProperty.Name;
             var value = firstProperty.GetValue(data);
-            Log(value, name, tags: tags.tagsArray);
+            Send(ConvertToVDebugObject(value, name, tags: tags.tagsArray));
         }
 
         [Conditional("DEBUG")]
         public static void watch<T>(this TagsCollection tags, T data)
         {
-            //TODO: find a way to use the Log method, duplicated with the log method.
-            // exit if Off
-            if (!IsOn) return;
-
-            // if initialization was not occurred yet, do it.
-            if (!IsInitializes)
-                Initialize();
-
             var callingMethod = new StackFrame(1, true).GetMethod();
             var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
             var firstProperty = typeof(T).GetProperties()[0];
-            var name = scope + "." + firstProperty.Name;
-            var wait = LogAsync(new
-            {
-                type = data.GetType(),
-                name = firstProperty.Name,
-                fullName = scope + "." + firstProperty.Name,
-                value = firstProperty.GetValue(data),
-                debugOption = "watch"
-            }).Result;
+
+            dynamic json = ConvertToVDebugObject(firstProperty.GetValue(data), firstProperty.Name);
+            json.tags = tags.tagsArray;
+            json.debugOption = "watch";
+            json.fullName = scope + "." + firstProperty.Name;
+
+            Send(json);
         }
 
         #endregion Extension
