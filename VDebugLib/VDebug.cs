@@ -204,6 +204,7 @@ namespace VDebugLib
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
+            // NOTE: getting exception here? see project FAQ in README.md
             var result = client.PostAsJsonAsync(ServerUri.ToString() + "vdebug/in", json).Result;
 
             string resultContent = result.Content.ReadAsStringAsync().Result;

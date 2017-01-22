@@ -9,7 +9,7 @@ namespace VDebugExample
 
         private static void Main(string[] args)
         {
-            Console.WriteLine("Start example");
+            Console.WriteLine("Open http://localhost:7000/ to see output");
 
             // Initialize the logger
             // It is not mandatory to call Initialize but it is recommended to do it as soon as
@@ -68,15 +68,20 @@ namespace VDebugExample
             });
 
             // Example of watching a variable.
+            // Note: To watch variable we need it's name and therefor we have to warp
+            // the variable with new {} deceleration as we do in "NamedLog" function.
             var sky = "Blue clear sky";
             VDebug.Watch(new { sky });
-            // Change the value and watch it changging.
+            // Change the value and watch it changing.
             sky = "Gray foggy sky";
             VDebug.Watch(new { sky });
-            // Example of watching two variables with the same name, in diffrent scopes.
+            // Example of watching two variables with the same name, in different scopes.
             CheckTheWeather();
         }
 
+        /// <summary>
+        /// Example of watching a variable in another scope
+        /// </summary>
         private static void CheckTheWeather()
         {
             var sky = "Blood moon night";
