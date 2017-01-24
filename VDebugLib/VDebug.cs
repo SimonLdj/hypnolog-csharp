@@ -344,22 +344,6 @@ namespace VDebugLib
             var value = firstProperty.GetValue(data);
             Send(ConvertToVDebugObject(value, name, tags: tags.tagsArray));
         }
-
-        [Conditional("DEBUG")]
-        public static void watch<T>(this TagsCollection tags, T data)
-        {
-            var callingMethod = new StackFrame(1, true).GetMethod();
-            var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
-            var firstProperty = typeof(T).GetProperties()[0];
-
-            dynamic json = ConvertToVDebugObject(firstProperty.GetValue(data), firstProperty.Name);
-            json.tags = tags.tagsArray;
-            json.debugOption = "watch";
-            json.fullName = scope + "." + firstProperty.Name;
-
-            Send(json);
-        }
-
         #endregion Extension
     }
 
