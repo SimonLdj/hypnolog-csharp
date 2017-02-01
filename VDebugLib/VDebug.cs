@@ -90,7 +90,7 @@ namespace VDebugLib
             // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
             var newSessionObj = new { type = "newSession", value = Guid.NewGuid() };
-            var wait = SendAsync(newSessionObj).Result;
+            SendAsync(newSessionObj, checkInitialized: false);
 
             IsInitializes = true;
         }
@@ -122,7 +122,7 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(object data)
         {
-            Send(ConvertToVDebugObject(data));
+            SendAsync(ConvertToVDebugObject(data));
         }
 
         /// <summary>
@@ -135,10 +135,8 @@ namespace VDebugLib
         {
             // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
 
-            var firstProperty = typeof (T).GetProperties()[0];
-            var name = firstProperty.Name;
-            var value = firstProperty.GetValue(data);
-            Send(ConvertToVDebugObject(value, name));
+            var tuple = ExtractNameAndValue(data);
+            SendAsync(ConvertToVDebugObject(tuple.Item2, name: tuple.Item1));
         }
 
         /// <summary>
@@ -158,7 +156,7 @@ namespace VDebugLib
             json.debugOption = "watch";
             json.fullName = scope + "." + firstProperty.Name;
 
-            Send(json);
+            SendAsync(json);
 
         }
 
@@ -177,25 +175,21 @@ namespace VDebugLib
         #region Private methods
 
         /// <summary>
-        /// The main sync method to Log.
+        /// The main sync method.
         /// This method is private to avoid miss using it and to avoid complicated public API.
-        /// </summary>
         /// <param name="json">Vdbug-valid-object to be logged</param>
-        /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
-        private static void Send(object json)
+        /// </summary>
+        private static async Task<string> SendAsync(object json, bool checkInitialized = true)
         {
-            // exit if Off
-            if (!IsOn) return;
+            if (checkInitialized)
+            {
+                // exit if Off
+                if (!IsOn) return null;
 
-            // if initialization was not occurred yet, do it.
-            if (!IsInitializes)
-                Initialize();
-
-            var wait = SendAsync(json).Result;
-        }
-
-        private static async Task<string> SendAsync(object json)
-        {
+                // if initialization was not occurred yet, do it.
+                if (!IsInitializes)
+                    Initialize();
+            }
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
@@ -284,6 +278,15 @@ namespace VDebugLib
             }
         }
 
+        private static Tuple<string, object> ExtractNameAndValue<T>(T data)
+        {
+            var firstProperty = typeof(T).GetProperties()[0];
+            var name = firstProperty.Name;
+            var value = firstProperty.GetValue(data);
+
+            return Tuple.Create<string, object>(name, value);
+        }
+
         #endregion Private methods
 
         #region Type related help methods
@@ -333,16 +336,14 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(this TagsCollection tags, object data)
         {
-            Send(ConvertToVDebugObject(data, name: null, tags: tags.tagsArray));
+            SendAsync(ConvertToVDebugObject(data, tags: tags.tagsArray));
         }
 
         [Conditional("DEBUG")]
         public static void NamedLog<T>(this TagsCollection tags, T data)
         {
-            var firstProperty = typeof(T).GetProperties()[0];
-            var name = firstProperty.Name;
-            var value = firstProperty.GetValue(data);
-            Send(ConvertToVDebugObject(value, name, tags: tags.tagsArray));
+            var tuple = ExtractNameAndValue(data);
+            SendAsync(ConvertToVDebugObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
         }
         #endregion Extension
     }
