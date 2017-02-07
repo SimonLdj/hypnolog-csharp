@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -126,6 +129,18 @@ namespace HypnoLogLib
         }
 
         /// <summary>
+        /// Send's the data synchronically.
+        /// Shouldn't be used, except from the Immediate Window!
+        /// Uses an old-fashioned class to consume REST API's.
+        /// This methos doesn't start a new task, and therefore can be used from the Immediate Window.
+        /// </summary>
+        /// <param name="data"></param>
+        [Conditional("DEBUG")]
+        public static void LogSync(object data)
+        {
+            SendSync(ConvertToVDebugObject(data));
+        }
+        /// <summary>
         /// Log variable with its name.
         /// Variable should be warped in new{} statement (Anonymous object) like this:
         /// NamedLog(new { variable })
@@ -194,7 +209,44 @@ namespace HypnoLogLib
         #endregion Public methods
 
         #region Private methods
+        /// <summary>
+        /// Send the json synchronically.
+        /// Doesn't start new task when sending the data to the server.
+        /// </summary>
+        /// <param name="json">Vdbug-valid-object to be logged</param>
+        private static void SendSync(object json)
+        {
+            // exit if Off
+            if (!IsOn) return;
+            // if initialization was not occurred yet, return.
+            if (!IsInitializes)
+            {
+                Debug.Print("VDebug: The initialization must happen befor using LogSync");
+                return;
+            }
+            // create HTTP Client and send HTTP post request
+            var client = new WebClient();
+            client.Headers[HttpRequestHeader.ContentType] = "application/json";
+            client.Headers[HttpRequestHeader.Accept] = "applicaton/json";
 
+            // convert json object to string.
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            var data = JsonConvert.SerializeObject(json, settings);
+
+            Uri remote = new Uri(ServerUri.ToString() + "vdebug/in");
+            try
+            {
+                // TODO: check the  status.
+                var status = client.UploadString(remote, data);
+            }
+            catch
+            {
+                Debug.Print("VDebug: Error sending data");
+                // TODO: do something on error (stop logging? log again?..)
+                //IsInFaultedSate = true;
+            }
+        }
         /// <summary>
         /// The main sync method.
         /// This method is private to avoid miss using it and to avoid complicated public API.
