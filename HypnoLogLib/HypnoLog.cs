@@ -4,14 +4,14 @@ using System.Dynamic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace VDebugLib
+namespace HypnoLogLib
 {
     /// <summary>
-    /// VDebug is a logging service class.
+    /// HypnoLog is a logging service class.
     /// This class should work only under Debug, that's why all public methods
     /// under this class are marked with Conditional("DEBUG") attribute.
     /// </summary>
-    public static class VDebug
+    public static class HypnoLog
     {
         #region Properties & Data members
 
@@ -37,7 +37,7 @@ namespace VDebugLib
 
         #endregion Properties & Data mambers
 
-        static VDebug()
+        static HypnoLog()
         {
             IsInitializes = false;
             IsOn = true;
@@ -68,7 +68,7 @@ namespace VDebugLib
             // Initialize only once
             if (IsInitializes)
             {
-                Debug.Print("VDebug: Initialization was called more than once");
+                Debug.Print("HypnoLog: Initialization was called more than once");
                 return;
             }
 
@@ -83,7 +83,7 @@ namespace VDebugLib
             {
                 Disable();
                 IsInFaultedSate = true;
-                Debug.Print("VDebug: Destination server is down. initialization failed.");
+                Debug.Print("HypnoLog: Destination server is down. initialization failed.");
                 return;
             }
 
@@ -122,7 +122,7 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(object data)
         {
-            SendAsync(ConvertToVDebugObject(data));
+            SendAsync(ConvertToHypnoLogObject(data));
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace VDebugLib
             // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
 
             var tuple = ExtractNameAndValue(data);
-            SendAsync(ConvertToVDebugObject(tuple.Item2, name: tuple.Item1));
+            SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1));
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace VDebugLib
             var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
             var firstProperty = typeof(T).GetProperties()[0];
 
-            dynamic json = ConvertToVDebugObject(firstProperty.GetValue(data), firstProperty.Name);
+            dynamic json = ConvertToHypnoLogObject(firstProperty.GetValue(data), firstProperty.Name);
 
             json.debugOption = "watch";
             json.fullName = scope + "." + firstProperty.Name;
@@ -194,7 +194,7 @@ namespace VDebugLib
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
             // NOTE: getting exception here? see project FAQ in README.md
-            var result = client.PostAsJsonAsync(ServerUri.ToString() + "vdebug/in", json).Result;
+            var result = client.PostAsJsonAsync(ServerUri.ToString() + "logger/in", json).Result;
 
             string resultContent = result.Content.ReadAsStringAsync().Result;
 
@@ -204,7 +204,7 @@ namespace VDebugLib
             }
             catch
             {
-                Debug.Print("VDebug: Error sending data. result: " + result.StatusCode.ToString());
+                Debug.Print("HypnoLog: Error sending data. result: " + result.StatusCode.ToString());
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
             }
@@ -214,15 +214,15 @@ namespace VDebugLib
         }
 
         /// <summary>
-        /// Convert given object to valid VDebug object.
-        /// VDebug object is object of this type:
+        /// Convert given object to valid HypnoLog object.
+        /// HypnoLog object is object of this type:
         /// { type, value }
         /// Later this object should be converted as is to JSON string.
         /// All simple C# types and numbers array are known types.
         /// Any other C# type will be recognized as "object" and customType property
         /// will be add with data about the object type.
         /// </summary>
-        private static dynamic ConvertToVDebugObject(object obj, string name = null, string[] tags = null)
+        private static dynamic ConvertToHypnoLogObject(object obj, string name = null, string[] tags = null)
         {
             // TODO: Handle Enum type better
             var type = obj.GetType();
@@ -266,7 +266,7 @@ namespace VDebugLib
                 try
                 {
                     // TODO: check server status is 200
-                    var temp = client.GetStringAsync(ServerUri.ToString() + "vdebug/status").Result;
+                    var temp = client.GetStringAsync(ServerUri.ToString() + "logger/status").Result;
                     return true;
                 }
                 catch (Exception ex)
@@ -336,14 +336,14 @@ namespace VDebugLib
         [Conditional("DEBUG")]
         public static void Log(this TagsCollection tags, object data)
         {
-            SendAsync(ConvertToVDebugObject(data, tags: tags.tagsArray));
+            SendAsync(ConvertToHypnoLogObject(data, tags: tags.tagsArray));
         }
 
         [Conditional("DEBUG")]
         public static void NamedLog<T>(this TagsCollection tags, T data)
         {
             var tuple = ExtractNameAndValue(data);
-            SendAsync(ConvertToVDebugObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
+            SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
         }
         #endregion Extension
     }

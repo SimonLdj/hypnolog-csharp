@@ -1,11 +1,11 @@
-VDebug C# library
+HypnoLog C# library
 ============================
 
 # 1. What is this?
-This is a library for C# projects to easily use *VDebug*.
-This library can be included as part of the project in which you want to use *VDebug*.
+This is a library for C# projects to easily use *HypnoLog*.
+This library can be included as part of the project in which you want to use *HypnoLog*.
 You can Include the library by
-(a) adding reference to the .dll file
+(a) adding reference to the `.dll` file
 or (b) using Nuget Package Manager
 or (c) include the source code as another project in your solution.
 
