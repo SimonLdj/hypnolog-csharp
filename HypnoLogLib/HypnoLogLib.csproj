@@ -56,6 +56,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="LogTextWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TagsCollection.cs" />
     <Compile Include="HypnoLog.cs" />

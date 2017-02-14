@@ -170,6 +170,27 @@ namespace HypnoLogLib
             return new TagsCollection(tags);
         }
 
+        /// <summary>
+        /// After calling this method all System.Console output will be redirected to HypnoLog.
+        /// This means any output such as 'Console.WriteLine("text")' will be
+        /// redirected to HypnoLog instead of System Console.
+        /// This is done by setting the System.Console.Out and System.Control.Error
+        /// property to internal HypnoLog text writer.
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void RedirectConsoleOutput()
+        {
+            Console.WriteLine("Console output redirected to HypnoLog.");
+            Debug.Print("Console output redirected to HypnoLog.");
+
+            // Create text writer which Log all input directly using HypnoLog
+            // and set it as Console Out and Error writers
+            var writer = new LogTextWriter();
+            Console.SetOut(writer);
+            // TODO: Mark somehow errors in HypnoLog
+            Console.SetError(writer);
+        }
+
         #endregion Public methods
 
         #region Private methods
