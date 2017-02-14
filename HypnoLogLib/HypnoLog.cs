@@ -65,6 +65,11 @@ namespace HypnoLogLib
         [Conditional("DEBUG")]
         public static void Initialize(string serverUri = null)
         {
+            // TODO: make Initialize sync (blocking) (?)
+            // or make sure no logging will happen before initialization done
+            // otherwise Initialize() might be called, not completed, Log() will be called
+            // and will start again another initialization.
+
             // exit if Off
             if (!IsOn) return;
 
@@ -93,6 +98,7 @@ namespace HypnoLogLib
             // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
             var newSessionObj = new { type = "newSession", value = Guid.NewGuid() };
+            // TODO: add here await (?)
             SendAsync(newSessionObj, checkInitialized: false);
 
             IsInitializes = true;
@@ -129,16 +135,17 @@ namespace HypnoLogLib
         }
 
         /// <summary>
-        /// Send's the data synchronically.
-        /// Shouldn't be used, except from the Immediate Window!
-        /// Uses an old-fashioned class to consume REST API's.
-        /// This methos doesn't start a new task, and therefore can be used from the Immediate Window.
+        /// Log the given object. Synchronously.
+        /// This method doesn't start a new thread, and therefore can be used
+        /// from the Immediate Window and Watch Window while debugging in Visual Studio.
+        /// Note that using this method will block for each HTTP request to
+        /// the server and shouldn't be used normally.
         /// </summary>
-        /// <param name="data"></param>
         [Conditional("DEBUG")]
+
         public static void LogSync(object data)
         {
-            SendSync(ConvertToVDebugObject(data));
+            SendSync(ConvertToHypnoLogObject(data));
         }
         /// <summary>
         /// Log variable with its name.
@@ -155,7 +162,7 @@ namespace HypnoLogLib
         }
 
         /// <summary>
-        /// Wach variable with this name from that sorce.
+        /// Watch variable with its name.
         /// Variable should be warped in new{} statement (Anonymous object) like this:
         /// WatchLog(new { variable })
         /// </summary>
@@ -176,7 +183,7 @@ namespace HypnoLogLib
         }
 
         /// <summary>
-        /// Return a hypnoTag object, this allow's to add tags to the data being loged.
+        /// Return a TagsCollection object, this allow's to add tags to the data being logged.
         /// After invoking this method, the user can call any of the log method.
         /// TODO: Add conditional DEBUG. (check what to do if function return value)
         /// </summary>
@@ -209,11 +216,13 @@ namespace HypnoLogLib
         #endregion Public methods
 
         #region Private methods
+
         /// <summary>
-        /// Send the json synchronically.
-        /// Doesn't start new task when sending the data to the server.
+        /// Sending the given object synchronously to the server.
+        /// Doesn't start a new task when sending the data to the server.
+        /// Note: HypnoLog must be initialized. Initialization will not happen here.
         /// </summary>
-        /// <param name="json">Vdbug-valid-object to be logged</param>
+        /// <param name="json">HypnoLog-valid-object to be logged</param>
         private static void SendSync(object json)
         {
             // exit if Off
@@ -221,9 +230,11 @@ namespace HypnoLogLib
             // if initialization was not occurred yet, return.
             if (!IsInitializes)
             {
-                Debug.Print("VDebug: The initialization must happen befor using LogSync");
+                // TODO: Initialize here as we do in SendAsync. Just make Initialize sync as well.
+                Debug.Print("HypnoLog Error: SendSync was called before initialization");
                 return;
             }
+
             // create HTTP Client and send HTTP post request
             var client = new WebClient();
             client.Headers[HttpRequestHeader.ContentType] = "application/json";
@@ -234,7 +245,7 @@ namespace HypnoLogLib
             settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
             var data = JsonConvert.SerializeObject(json, settings);
 
-            Uri remote = new Uri(ServerUri.ToString() + "vdebug/in");
+            Uri remote = new Uri(ServerUri.ToString() + "logger/in");
             try
             {
                 // TODO: check the  status.
@@ -242,27 +253,25 @@ namespace HypnoLogLib
             }
             catch
             {
-                Debug.Print("VDebug: Error sending data");
+                Debug.Print("HypnoLog: Error sending data");
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
             }
         }
+
         /// <summary>
-        /// The main sync method.
-        /// This method is private to avoid miss using it and to avoid complicated public API.
-        /// <param name="json">Vdbug-valid-object to be logged</param>
+        /// Sending the given object asynchronously to the server.
+        /// Note: This method initialize HypnoLog if not initialized.
+        /// <param name="json">HypnoLog-valid-object to be logged</param>
+        /// <param name="checkInitialized">Should initialization be checked before sending the data</param>
         /// </summary>
         private static async Task<string> SendAsync(object json, bool checkInitialized = true)
         {
-            if (checkInitialized)
-            {
-                // exit if Off
-                if (!IsOn) return null;
+            // exit if Off
+            if (!IsOn) return null;
+            // if initialization was not occurred yet, do it.
+            if (checkInitialized && !IsInitializes) Initialize();
 
-                // if initialization was not occurred yet, do it.
-                if (!IsInitializes)
-                    Initialize();
-            }
             // create HTTP Client and send HTTP post request
             var client = new HttpClient();
             // NOTE: the data sent to server must be valid JSON string
@@ -295,11 +304,14 @@ namespace HypnoLogLib
         /// Any other C# type will be recognized as "object" and customType property
         /// will be add with data about the object type.
         /// </summary>
+        /// <param name="obj">Object to be converted</param>
+        /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
+        /// <param name="tags">Optional. Tags to include in the Log Object</param>
         private static dynamic ConvertToHypnoLogObject(object obj, string name = null, string[] tags = null)
         {
             // TODO: Handle Enum type better
             var type = obj.GetType();
-            // TODO: use some sort of VDebug-log object that extend ExpandoObject but require type and value properties.
+            // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and value properties.
             dynamic json = new ExpandoObject();
             json.value = obj;
             json.type = "unknown";
@@ -345,7 +357,7 @@ namespace HypnoLogLib
                 catch (Exception ex)
                 {
                     // TODO: log something useful
-                    Debug.Print("VDebug: error while checking if destination server is up: " + ex.Message);
+                    Debug.Print("HypnoLog: error while checking if destination server is up: " + ex.Message);
                     return false;
                 }
             }
