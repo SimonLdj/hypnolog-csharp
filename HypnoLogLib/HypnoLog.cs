@@ -202,6 +202,13 @@ namespace HypnoLogLib
         [Conditional("DEBUG")]
         public static void RedirectConsoleOutput()
         {
+            // exit if Off
+            if (!IsOn)
+            {
+                Debug.Print("HypnoLog logging is off, Console Output will NOT be redirected.");
+                return;
+            }
+
             Console.WriteLine("Console output redirected to HypnoLog.");
             Debug.Print("Console output redirected to HypnoLog.");
 
