@@ -49,6 +49,13 @@ namespace HypnoLogLib
             ServerUri = new Uri("http://localhost:7000/");
         }
 
+        #region Events
+        /// <summary>
+        /// Occurs when the HypnoLog couldn't communicate with the server.
+        /// </summary>
+        public static event EventHandler ErrorOccurred;
+        #endregion
+
         #region Public methods
 
         // NOTE: All public methods should be marked with [Conditional("DEBUG")] attribute
@@ -260,6 +267,7 @@ namespace HypnoLogLib
             }
             catch
             {
+                OnErrorOccurred();
                 Debug.Print("HypnoLog: Error sending data");
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
@@ -293,6 +301,7 @@ namespace HypnoLogLib
             }
             catch
             {
+                OnErrorOccurred();
                 Debug.Print("HypnoLog: Error sending data. result: " + result.StatusCode.ToString());
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
@@ -364,6 +373,7 @@ namespace HypnoLogLib
                 catch (Exception ex)
                 {
                     // TODO: log something useful
+                    OnErrorOccurred();
                     Debug.Print("HypnoLog: error while checking if destination server is up: " + ex.Message);
                     return false;
                 }
@@ -379,6 +389,10 @@ namespace HypnoLogLib
             return Tuple.Create<string, object>(name, value);
         }
 
+        private static void OnErrorOccurred()
+        {
+            if (ErrorOccurred != null) ErrorOccurred(null, EventArgs.Empty);
+        }
         #endregion Private methods
 
         #region Type related help methods
