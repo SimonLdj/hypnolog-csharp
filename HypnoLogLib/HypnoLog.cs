@@ -68,9 +68,10 @@ namespace HypnoLogLib
         /// If Initialize was not invoked manually, it will be called implicitly at the first
         /// logging action.
         /// </summary>
+        /// <param name="shouldRedirect">If given System.Console output will be redirected to HypnoLog</param>
         /// <param name="serverUri">If given, server URL will be changed.</param>
         [Conditional("DEBUG")]
-        public static void Initialize(string serverUri = null)
+        public static void Initialize(bool shouldRedirect = false, string serverUri = null)
         {
             // TODO: make Initialize sync (blocking) (?)
             // or make sure no logging will happen before initialization done
@@ -109,6 +110,7 @@ namespace HypnoLogLib
             SendAsync(newSessionObj, checkInitialized: false);
 
             IsInitializes = true;
+            if(shouldRedirect) RedirectConsoleOutput();
         }
 
         /// <summary>
@@ -198,35 +200,6 @@ namespace HypnoLogLib
         {
             return new TagsCollection(tags);
         }
-
-        /// <summary>
-        /// After calling this method all System.Console output will be redirected to HypnoLog.
-        /// This means any output such as 'Console.WriteLine("text")' will be
-        /// redirected to HypnoLog instead of System Console.
-        /// This is done by setting the System.Console.Out and System.Control.Error
-        /// property to internal HypnoLog text writer.
-        /// </summary>
-        [Conditional("DEBUG")]
-        public static void RedirectConsoleOutput()
-        {
-            // exit if Off
-            if (!IsOn)
-            {
-                Debug.Print("HypnoLog logging is off, Console Output will NOT be redirected.");
-                return;
-            }
-
-            Console.WriteLine("Console output redirected to HypnoLog.");
-            Debug.Print("Console output redirected to HypnoLog.");
-
-            // Create text writer which Log all input directly using HypnoLog
-            // and set it as Console Out and Error writers
-            var writer = new LogTextWriter();
-            Console.SetOut(writer);
-            // TODO: Mark somehow errors in HypnoLog
-            Console.SetError(writer);
-        }
-
         #endregion Public methods
 
         #region Private methods
@@ -387,6 +360,30 @@ namespace HypnoLogLib
             var value = firstProperty.GetValue(data);
 
             return Tuple.Create<string, object>(name, value);
+        }
+        // NOTE: Redirect-console-output is argument in initialization and not method by itself because
+        // when asked to redirect console output we need to know if we have working HL server (= initialization was successful),
+        // we do not want to redirect console output and then realize initialization failed.
+        // This is also because initialization is non-blocking.
+
+        /// <summary>
+        /// After calling this method all System.Console output will be redirected to HypnoLog.
+        /// This means any output such as 'Console.WriteLine("text")' will be
+        /// redirected to HypnoLog instead of System Console.
+        /// This is done by setting the System.Console.Out and System.Control.Error
+        /// property to internal HypnoLog text writer.
+        /// </summary>
+        private static void RedirectConsoleOutput()
+        {
+            Console.WriteLine("Console output redirected to HypnoLog.");
+            Debug.Print("Console output redirected to HypnoLog.");
+
+            // Create text writer which Log all input directly using HypnoLog
+            // and set it as Console Out and Error writers
+            var writer = new LogTextWriter();
+            Console.SetOut(writer);
+            // TODO: Mark somehow errors in HypnoLog
+            Console.SetError(writer);
         }
 
         private static void OnErrorOccurred()

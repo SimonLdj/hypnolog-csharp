@@ -17,7 +17,7 @@ namespace HypnoLogExample
             // of new session in a proper way.
             // If Initialize was not invoked manually, it will be called implicitly at the first
             // logging action.
-            HypnoLog.Initialize("http://localhost:7000/");
+            HypnoLog.Initialize(serverUri:"http://localhost:7000/");
             // Also you can call initialization without parameters. Default server will be used (http://localhost:7000/).
 
             // Example of logging a string
