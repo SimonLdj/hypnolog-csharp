@@ -167,6 +167,33 @@ namespace HypnoLogLib
         {
             SendSync(ConvertToHypnoLogObject(data));
         }
+
+        /// <summary>
+        /// Log the given string.
+        /// Replaces the format item in a specified string with the string representation
+        /// of a corresponding object in a specified array.
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void Log(string format, params object[] args)
+        {
+            SendAsync(ConvertToHypnoLogObject(String.Format(format, args)));
+        }
+
+        /// <summary>
+        /// Log the given string. Synchronously.
+        /// Replaces the format item in a specified string with the string representation
+        /// of a corresponding object in a specified array.
+        /// This method doesn't start a new thread, and therefore can be used
+        /// from the Immediate Window and Watch Window while debugging in Visual Studio.
+        /// Note that using this method will block for each HTTP request to
+        /// the server and shouldn't be used normally.
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void LogSync(string format, params object[] args)
+        {
+            SendSync(ConvertToHypnoLogObject(String.Format(format, args)));
+        }
+
         /// <summary>
         /// Log variable with its name.
         /// Variable should be warped in new{} statement (Anonymous object) like this:
@@ -179,6 +206,20 @@ namespace HypnoLogLib
 
             var tuple = ExtractNameAndValue(data);
             SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1));
+        }
+
+        /// <summary>
+        /// Log variable with its name.
+        /// Variable should be warped in new{} statement (Anonymous object) like this:
+        /// NamedLog(new { variable })
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void NamedLogSync<T>(T data)
+        {
+            // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
+
+            var tuple = ExtractNameAndValue(data);
+            SendSync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1));
         }
 
         /// <summary>
@@ -211,6 +252,7 @@ namespace HypnoLogLib
         {
             return new TagsCollection(tags);
         }
+
         #endregion Public methods
 
         #region Private methods
@@ -443,7 +485,7 @@ namespace HypnoLogLib
 
         #endregion Type related help methods
 
-        #region Extensions
+        #region Extensions for TagsCollection
 
         [Conditional("DEBUG")]
         public static void Log(this TagsCollection tags, object data)
@@ -452,11 +494,37 @@ namespace HypnoLogLib
         }
 
         [Conditional("DEBUG")]
+        public static void LogSync(this TagsCollection tags, object data)
+        {
+            SendSync(ConvertToHypnoLogObject(data, tags: tags.tagsArray));
+        }
+
+        [Conditional("DEBUG")]
+        public static void Log(this TagsCollection tags, string format, params object[] args)
+        {
+            SendAsync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
+        }
+
+        [Conditional("DEBUG")]
+        public static void LogSync(this TagsCollection tags, string format, params object[] args)
+        {
+            SendSync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
+        }
+
+        [Conditional("DEBUG")]
         public static void NamedLog<T>(this TagsCollection tags, T data)
         {
             var tuple = ExtractNameAndValue(data);
             SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
         }
-        #endregion Extension
+
+        [Conditional("DEBUG")]
+        public static void NamedLogSync<T>(this TagsCollection tags, T data)
+        {
+            var tuple = ExtractNameAndValue(data);
+            SendSync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
+        }
+
+        #endregion Extension for TagsCollection
     }
 }

@@ -20,16 +20,19 @@ namespace HypnoLogExample
             HypnoLog.Initialize(serverUri:"http://localhost:7000/");
             // Also you can call initialization without parameters. Default server will be used (http://localhost:7000/).
 
+            // == Logging ==
+
             // Example of logging a string
             HypnoLog.Log("Example for logging string from C#");
+            HypnoLog.Log("Example for logging string from C# version {0} at {1}", 4.5 , DateTime.Now);
 
             // Example of logging variable with its name
-            // This is good to avoid code like this:
-            // var x = GetSomeValue();
-            // Log("x: " + x);
-            // Then you change the name of 'x' and the logging become misleading.
+            //  This is good to avoid code like this:
+            // 	    var x = GetSomeValue();
+            // 		Log("x: " + x);
+            //  Then you change the name of 'x' and the logging become misleading.
             // Note: To log variable with it's name use the "NamedLog" function, and warp the
-            // variable with new {} deceleration.
+            // variable with `new {}` deceleration.
             var walter = "Also known as Mr.White";
             HypnoLog.NamedLog(new {walter});
 
@@ -67,6 +70,8 @@ namespace HypnoLogExample
                 Color = Colors.Red
             });
 
+            // == Watching ==
+
             // Example of watching a variable.
             // Note: To watch variable we need it's name and therefor we have to warp
             // the variable with new {} deceleration as we do in "NamedLog" function.
@@ -78,13 +83,34 @@ namespace HypnoLogExample
             // Example of watching two variables with the same name, in different scopes.
             CheckTheWeather();
 
-            //Example of logging with tags.
+            // == Tags ==
+
+            // Example of logging with tags.
             // Note: To log with tags you should add your tags with the 'Tag' method and then invoke logging method of your choice.
             HypnoLog.Tag("#network").Log("Some network data Tagged as #network");
-            HypnoLog.Tag("##weather").Log("Weather will be sunny");
-            var weatherOverNetwork = "Weather received over net will be cool and cloudy";
+            HypnoLog.Tag("weather").Log("Weather will be {0}. Tagged as #weather", "sunny");
+            var weatherOverNetwork =
+                "Weather report received over network:\n" +
+                    "Weather will be cool and cloudy\n" +
+                    "Sun will be soft but warm\n" +
+                    "Waves will be head hight \\m/\n";
             // You can also tag with multiple tags, just separate them with space or hash
             HypnoLog.Tag("#weather #network").NamedLog(new { weatherOverNetwork });
+
+            // == Synchronous usage ==
+
+            // In case you want to use some logging methods from scopes do not allow multi-threading
+            // such as invoking method from Immediate Window in Visual Studio,
+            // use the Synchronous version of the logging methods.
+
+            // Example of synchronous logging
+            HypnoLog.LogSync("Logging some string, synchronously!");
+            HypnoLog.Tag("sync").LogSync("Logging some string, synchronously! at {0}, tagged as #{1}", DateTime.Now, "sync");
+            var someVariable = "Which will be logged Synchronously";
+            HypnoLog.NamedLogSync(new {someVariable});
+            someVariable += " again, with a #sync tag";
+            HypnoLog.Tag("sync").NamedLogSync(new {someVariable});
+
         }
 
         /// <summary>
