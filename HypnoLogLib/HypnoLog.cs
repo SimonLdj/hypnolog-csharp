@@ -38,6 +38,11 @@ namespace HypnoLogLib
 
         private static Uri ServerUri { get; set; }
 
+        /// <summary>
+        /// Setting used when serializing objects as JSON
+        /// </summary>
+        private static JsonSerializerSettings JsonSerializerSettings { get; set; }
+
         #endregion Properties & Data mambers
 
         static HypnoLog()
@@ -47,6 +52,12 @@ namespace HypnoLogLib
             IsInFaultedSate = false;
             // TODO: let user set default server by config
             ServerUri = new Uri("http://localhost:7000/");
+
+            // Create some default setting for JSON serialization
+            // TODO: let user set JSON serialization settings as well (make property public? via config file?)
+            JsonSerializerSettings = new JsonSerializerSettings();
+            JsonSerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            JsonSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
         }
 
         #region Events
@@ -228,9 +239,7 @@ namespace HypnoLogLib
             client.Headers[HttpRequestHeader.Accept] = "applicaton/json";
 
             // convert json object to string.
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-            var data = JsonConvert.SerializeObject(json, settings);
+            var data = JsonConvert.SerializeObject(json, JsonSerializerSettings);
 
             Uri remote = new Uri(ServerUri.ToString() + "logger/in");
             try

@@ -43,4 +43,8 @@ Note `<runtime>` tag should be under the `<configuration>` root tag.
 See this blog post for more information:  
 http://blog.myget.org/post/2014/11/27/Could-not-load-file-or-assembly-NuGet-Assembly-Redirects.aspx
 
+# 3. I don't see some of objects properties when logging it
 
+HypnoLog uses `Newtonsoft.Json` to serialize objects as JSON.
+Check the `JsonSerializerSettings` object used by HypnoLog (created in constructor).
+You can try modify the setting such as `ReferenceLoopHandling` (might be set to ignore), `MaxDepth`,...
