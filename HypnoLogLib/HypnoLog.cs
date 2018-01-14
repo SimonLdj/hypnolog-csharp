@@ -116,7 +116,7 @@ namespace HypnoLogLib
 
             // send special 'new session' message
             // TODO: make new session type more strongly typed (?)
-            var newSessionObj = new { type = "newSession", value = Guid.NewGuid() };
+            var newSessionObj = new { type = "newSession", data = Guid.NewGuid() };
             // TODO: add here await (?)
             SendAsync(newSessionObj, checkInitialized: false);
 
@@ -338,7 +338,7 @@ namespace HypnoLogLib
         /// <summary>
         /// Convert given object to valid HypnoLog object.
         /// HypnoLog object is object of this type:
-        /// { type, value }
+        /// { type, data }
         /// Later this object should be converted as is to JSON string.
         /// All simple C# types and numbers array are known types.
         /// Any other C# type will be recognized as "object" and customType property
@@ -351,9 +351,9 @@ namespace HypnoLogLib
         {
             // TODO: Handle Enum type better
             var type = obj.GetType();
-            // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and value properties.
+            // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and data properties.
             dynamic json = new ExpandoObject();
-            json.value = obj;
+            json.data = obj;
             json.type = "unknown";
 
             if (name != null)

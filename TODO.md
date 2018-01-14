@@ -1,6 +1,9 @@
 HypnoLog-csharp TODO list
 ================================
 
+- Let user set it's own type of the logged data, C# lib should only help
+  determine the logged data type, but not force it.
+
 - Do not use Nuget at all (just reference to dll files) because when working off-line (without nuget server) VS still display error.
 - Handle errors when logging null value
 - Handle object which throw exceptions while serialized to JSON (log "error while serializing" / ignore problematic members)
