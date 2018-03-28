@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-// Do this to easily use HypnoLogLib as HL in your code
+// Do this to easily use HypnoLog as HL in your code
 using HL = HypnoLogLib.HypnoLog;
 
 namespace HypnoLogExample

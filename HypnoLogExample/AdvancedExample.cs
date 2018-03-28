@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-// Do this to easily use HypnoLogLib as HL in your code
+// Do this to easily use HypnoLog as HL in your code
 using HL = HypnoLogLib.HypnoLog;
-using HypnoLogLib;
 
 namespace HypnoLogExample
 {
@@ -14,46 +13,80 @@ namespace HypnoLogExample
     {
         public static void Run()
         {
-            // TODO: complete/fix Advanced examples
+            // HypnoLog C# Advanced usage examples:
 
-            // HypnoLog C# usage examples:
+            // == Initializing ==
+            // Note: this is an experimental feature
 
-            // Initialize the logger
-            // It is not mandatory to call Initialize but it is recommended to do it as soon as
+            // Initialize the HypnoLog
+            // It is not mandatory to call Initialize but it is recommended to do so as soon as
             // possible in the begging of the program. This will help marking the begging
-            // of new session in a proper way.
+            // of new session in a proper way, by logging "new session" message.
             // If Initialize was not invoked manually, it will be called implicitly at the first
             // logging action.
-            HL.Initialize(serverUri:"http://localhost:7000/");
+            HL.Initialize(shouldRedirect: true, serverUri:"http://localhost:7000/");
             // Also you can call initialization without parameters. Default server will be used (http://localhost:7000/).
+            // Setting shouldRedirect to true, will redirect all System.Console output to HypnoLog.
+            // This can be useful if u already have a program with a lot of output to the console.
 
             // == Logging ==
+            // Note: this is an experimental feature
 
-            // Example of logging a string
-            HL.Log("Example for logging string from C#");
-            HL.Log("Example for logging string from C# version {0} at {1}", 4.5 , DateTime.Now);
+            // Example of logging a string with arguments which will be format,
+            // as you would do in `Console.WriteLine("x = {0}", x);`
+            HL.Log("This is logged form C# version {0} at {1}", Environment.Version , DateTime.Now);
+
+            // TODO: when logging `HL.Log("bal is {0} ", args: "sunny");` the `args` is required
+            // otherwise the method is ambiguous
+            //HL.Log("bal is {0} ", "sunny");
+
+
+            // == Tags ==
+            // Note: this is an experimental feature
+
+            // Example of logging with tags.
+            // To log with tags, add your tags with the `Tag()` method and then invoke the logging method of your choice.
+            // You can tag with multiple tags,
+            // tags can be separated by hash (`#`) or space(` `).
+            HL.Tag("#info").Log("Some data Tagged as info");
+            HL.Tag("#info #weather").Log("Weather will be sunny. Tagged as #info and as #weather");
+            var detailedWeatherDescription =
+                "Weather report received over network:\n" +
+                    "Weather will be cool and cloudy\n" +
+                    "Sun will be soft but warm\n" +
+                    "Waves will be head hight \\m/\n";
+            // Combine tagging and named-logging
+            HL.Tag("info weather detailed").NamedLog(new { detailedWeatherDescription });
+            // Log some graph and tag it
+            HL.Tag("#info #numbers").Log(new[] { 1, 2, 3, 4, 5 }, type: "plot");
+
+            // == Named logging ==
+            // Note: this is an experimental feature
 
             // Example of logging variable with its name
             //  This is good to avoid code like this:
             // 	    var x = GetSomeValue();
             // 		Log("x: " + x);
-            //  Then you change the name of 'x' and the logging become misleading.
+            //  Then you change the name of 'x' to 'y' and the logging become misleading.
             // Note: To log variable with it's name use the "NamedLog" function, and warp the
             // variable with `new {}` deceleration.
+            HL.Log("Example of logging with variable name:");
             var walter = "Also known as Mr.White";
             HL.NamedLog(new {walter});
 
-            // Example of logging an integer
-            HL.Log(758593);
+            // == Synchronous usage ==
+            // Note: this is an experimental feature
 
-            // Example of logging a double
-            HL.Log(100.999);
+            // In case you want to use some logging methods from scopes do not allow multi-threading
+            // such as invoking method from Visual Studio Immediate Window,
+            // use the Synchronous version of the logging methods.
 
-            // Example of logging an Enum
-            HL.Log(Colors.Green);
+            // Example of synchronous logging
+            HL.LogSync("Logging some string, synchronously!");
 
-
-            //// == Watching ==
+            // == Watching ==
+            // Note: this is an experimental feature
+            // Not working right now
 
             //// Example of watching a variable.
             //// Note: To watch variable we need it's name and therefor we have to warp
@@ -65,34 +98,6 @@ namespace HypnoLogExample
             //HL.Watch(new { sky });
             //// Example of watching two variables with the same name, in different scopes.
             //CheckTheWeather();
-
-            // == Tags ==
-
-            // Example of logging with tags.
-            // Note: To log with tags you should add your tags with the 'Tag' method and then invoke logging method of your choice.
-            //HL.Tag("#network").Log("Some network data Tagged as #network");
-            //HL.Tag("weather").Log("Weather will be {0}. Tagged as #weather", "sunny");
-            //var weatherOverNetwork =
-            //    "Weather report received over network:\n" +
-            //        "Weather will be cool and cloudy\n" +
-            //        "Sun will be soft but warm\n" +
-            //        "Waves will be head hight \\m/\n";
-            // You can also tag with multiple tags, just separate them with space or hash
-            //HL.Tag("#weather #network").NamedLog(new { weatherOverNetwork });
-
-            // == Synchronous usage ==
-
-            // In case you want to use some logging methods from scopes do not allow multi-threading
-            // such as invoking method from Immediate Window in Visual Studio,
-            // use the Synchronous version of the logging methods.
-
-            //// Example of synchronous logging
-            //HL.LogSync("Logging some string, synchronously!");
-            //HL.Tag("sync").LogSync("Logging some string, synchronously! at {0}, tagged as #{1}", DateTime.Now, "sync");
-            //var someVariable = "Which will be logged Synchronously";
-            //HL.NamedLogSync(new {someVariable});
-            //someVariable += " again, with a #sync tag";
-            //HL.Tag("sync").NamedLogSync(new {someVariable});
         }
 
         /// <summary>
@@ -102,13 +107,6 @@ namespace HypnoLogExample
         {
             var sky = "Blood moon night";
             HL.Watch(new { sky });
-        }
-
-        private enum Colors
-        {
-            Red,
-            Green,
-            Blue
         }
     }
 }

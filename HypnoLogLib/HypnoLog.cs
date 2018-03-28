@@ -147,9 +147,9 @@ namespace HypnoLogLib
         /// This is the most simple way to do that.
         /// </summary>
         [Conditional("DEBUG")]
-        public static void Log(object obj, string type = null, string[] tags = null)
+        public static void Log(object obj, string type = null)
         {
-            SendAsync(ConvertToHypnoLogObject(obj: obj, type: type, tags: tags));
+            SendAsync(ConvertToHypnoLogObject(obj: obj, type: type));
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace HypnoLogLib
         /// Note: HypnoLog must be initialized. Initialization will not happen here.
         /// </summary>
         /// <param name="json">HypnoLog-valid-object to be logged</param>
-        private static void SendSync(object json)
+        internal static void SendSync(object json)
         {
             // exit if Off
             if (!IsOn) return;
@@ -301,7 +301,7 @@ namespace HypnoLogLib
         /// <param name="json">HypnoLog-valid-object to be logged</param>
         /// <param name="checkInitialized">Should initialization be checked before sending the data</param>
         /// </summary>
-        private static async Task<string> SendAsync(object json, bool checkInitialized = true)
+        internal static async Task<string> SendAsync(object json, bool checkInitialized = true)
         {
             // exit if Off
             if (!IsOn) return null;
@@ -345,7 +345,7 @@ namespace HypnoLogLib
         /// <param name="type">Optional. Type of the given object. Determine how to object will be visualized.</param>
         /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
         /// <param name="tags">Optional. Tags to include in the Log Object</param>
-        private static dynamic ConvertToHypnoLogObject(object obj, string type = null, string name = null, string[] tags = null)
+        internal static dynamic ConvertToHypnoLogObject(object obj, string type = null, string name = null, string[] tags = null)
         {
             // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and data properties.
             dynamic json = new ExpandoObject();
@@ -421,7 +421,7 @@ namespace HypnoLogLib
             }
         }
 
-        private static Tuple<string, object> ExtractNameAndValue<T>(T data)
+        internal static Tuple<string, object> ExtractNameAndValue<T>(T data)
         {
             var firstProperty = typeof(T).GetProperties()[0];
             var name = firstProperty.Name;
