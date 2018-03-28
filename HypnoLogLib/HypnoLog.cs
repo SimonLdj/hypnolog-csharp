@@ -115,10 +115,8 @@ namespace HypnoLogLib
             }
 
             // send special 'new session' message
-            // TODO: make new session type more strongly typed (?)
-            var newSessionObj = new { type = "newSession", data = Guid.NewGuid() };
             // TODO: add here await (?)
-            SendAsync(newSessionObj, checkInitialized: false);
+            SendAsync(ConvertToHypnoLogObject(obj: Guid.NewGuid(), type: "newSession"), checkInitialized: false);
 
             IsInitializes = true;
             if(shouldRedirect) RedirectConsoleOutput();
@@ -149,9 +147,9 @@ namespace HypnoLogLib
         /// This is the most simple way to do that.
         /// </summary>
         [Conditional("DEBUG")]
-        public static void Log(object data)
+        public static void Log(object obj, string type = null, string[] tags = null)
         {
-            SendAsync(ConvertToHypnoLogObject(data));
+            SendAsync(ConvertToHypnoLogObject(obj: obj, type: type, tags: tags));
         }
 
         /// <summary>
@@ -163,9 +161,9 @@ namespace HypnoLogLib
         /// </summary>
         [Conditional("DEBUG")]
 
-        public static void LogSync(object data)
+        public static void LogSync(object obj, string type = null)
         {
-            SendSync(ConvertToHypnoLogObject(data));
+            SendSync(ConvertToHypnoLogObject(obj: obj, type: type));
         }
 
         /// <summary>
@@ -200,12 +198,12 @@ namespace HypnoLogLib
         /// NamedLog(new { variable })
         /// </summary>
         [Conditional("DEBUG")]
-        public static void NamedLog<T>(T data)
+        public static void NamedLog<T>(T obj, string type = null)
         {
             // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
 
-            var tuple = ExtractNameAndValue(data);
-            SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1));
+            var tuple = ExtractNameAndValue(obj);
+            SendAsync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1));
         }
 
         /// <summary>
@@ -214,12 +212,12 @@ namespace HypnoLogLib
         /// NamedLog(new { variable })
         /// </summary>
         [Conditional("DEBUG")]
-        public static void NamedLogSync<T>(T data)
+        public static void NamedLogSync<T>(T obj, string type = null)
         {
             // TODO: handle somehow wrong usage of "NamedLog" function (?). (when not warping variable with new{})
 
-            var tuple = ExtractNameAndValue(data);
-            SendSync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1));
+            var tuple = ExtractNameAndValue(obj);
+            SendSync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1));
         }
 
         /// <summary>
@@ -228,19 +226,18 @@ namespace HypnoLogLib
         /// WatchLog(new { variable })
         /// </summary>
         [Conditional("DEBUG")]
-        public static void Watch<T>(T data)
+        public static void Watch<T>(T obj, string type = null)
         {
             var callingMethod = new StackFrame(1, true).GetMethod();
             var scope = callingMethod.ReflectedType.FullName + "." + callingMethod.Name;
             var firstProperty = typeof(T).GetProperties()[0];
 
-            dynamic json = ConvertToHypnoLogObject(firstProperty.GetValue(data), firstProperty.Name);
+            dynamic json = ConvertToHypnoLogObject(obj: firstProperty.GetValue(obj), type: type, name: firstProperty.Name);
 
             json.debugOption = "watch";
             json.fullName = scope + "." + firstProperty.Name;
 
             SendAsync(json);
-
         }
 
         /// <summary>
@@ -345,16 +342,17 @@ namespace HypnoLogLib
         /// will be add with data about the object type.
         /// </summary>
         /// <param name="obj">Object to be converted</param>
+        /// <param name="type">Optional. Type of the given object. Determine how to object will be visualized.</param>
         /// <param name="name">Optional. Name of the variable being logged. Should be provided from user only by NamedLog method.</param>
         /// <param name="tags">Optional. Tags to include in the Log Object</param>
-        private static dynamic ConvertToHypnoLogObject(object obj, string name = null, string[] tags = null)
+        private static dynamic ConvertToHypnoLogObject(object obj, string type = null, string name = null, string[] tags = null)
         {
-            // TODO: Handle Enum type better
-            var type = obj.GetType();
             // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and data properties.
             dynamic json = new ExpandoObject();
             json.data = obj;
-            json.type = "unknown";
+            json.type = type ?? DetermineObjectType(obj);
+
+            // set optional fields if given
 
             if (name != null)
                 json.name = name;
@@ -362,22 +360,41 @@ namespace HypnoLogLib
             if (tags != null)
                 json.tags = tags;
 
+            return json;
+        }
+
+
+        /// <summary>
+        /// Try to determine given object type
+        /// </summary>
+        /// <returns></returns>
+        private static string DetermineObjectType(object obj)
+        {
+            // first get C# Type
+            var type = obj.GetType();
+
+            // If simple (primitive) C# type, just use it by it's name
             if (IsSimple(type))
             {
-                json.type = obj.GetType().Name;
+                return obj.GetType().Name;
             }
+            // else, try some custom more complex types we know
+            // try number array
             else if (IsNumbersArray(type))
             {
-                json.type = "numbersArray";
+                return "numbersArray";
             }
+            // else, if all unknown, set it as "object"
             else
             {
-                json.type = "object";
-                json.customType = type.Name;
-                json.customFullType = type.FullName;
+                return "object";
             }
 
-            return json;
+            // TODO: Handle Enum type better
+
+            // TODO: use C# type name?
+            //json.customType = type.Name;
+            //json.customFullType = type.FullName;
         }
 
         /// <summary>
@@ -412,6 +429,7 @@ namespace HypnoLogLib
 
             return Tuple.Create<string, object>(name, value);
         }
+
         // NOTE: Redirect-console-output is argument in initialization and not method by itself because
         // when asked to redirect console output we need to know if we have working HL server (= initialization was successful),
         // we do not want to redirect console output and then realize initialization failed.
@@ -441,6 +459,7 @@ namespace HypnoLogLib
         {
             if (ErrorOccurred != null) ErrorOccurred(null, EventArgs.Empty);
         }
+
         #endregion Private methods
 
         #region Type related help methods
@@ -487,43 +506,48 @@ namespace HypnoLogLib
 
         #region Extensions for TagsCollection
 
-        [Conditional("DEBUG")]
-        public static void Log(this TagsCollection tags, object data)
-        {
-            SendAsync(ConvertToHypnoLogObject(data, tags: tags.tagsArray));
-        }
+        // TODO: move all those Extension methods to TagsCollection class, so they can be used directly on TagsCollection object.
+        // This is required if we want to allow simple syntax as HL.Tag(..).Log(..)
+        // and allow the user not to call "using" for all HypnoLogLib
 
-        [Conditional("DEBUG")]
-        public static void LogSync(this TagsCollection tags, object data)
-        {
-            SendSync(ConvertToHypnoLogObject(data, tags: tags.tagsArray));
-        }
 
-        [Conditional("DEBUG")]
-        public static void Log(this TagsCollection tags, string format, params object[] args)
-        {
-            SendAsync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
-        }
+        //[Conditional("DEBUG")]
+        //public static void Log(this TagsCollection tags, object obj, string type = null)
+        //{
+        //    SendAsync(ConvertToHypnoLogObject(obj: obj, tags: tags.tagsArray, type: null));
+        //}
 
-        [Conditional("DEBUG")]
-        public static void LogSync(this TagsCollection tags, string format, params object[] args)
-        {
-            SendSync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
-        }
+        //[Conditional("DEBUG")]
+        //public static void LogSync(this TagsCollection tags, object obj, string type = null)
+        //{
+        //    SendSync(ConvertToHypnoLogObject(obj: obj, tags: tags.tagsArray, type: type));
+        //}
 
-        [Conditional("DEBUG")]
-        public static void NamedLog<T>(this TagsCollection tags, T data)
-        {
-            var tuple = ExtractNameAndValue(data);
-            SendAsync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
-        }
+        //[Conditional("DEBUG")]
+        //public static void Log(this TagsCollection tags, string format, params object[] args)
+        //{
+        //    SendAsync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
+        //}
 
-        [Conditional("DEBUG")]
-        public static void NamedLogSync<T>(this TagsCollection tags, T data)
-        {
-            var tuple = ExtractNameAndValue(data);
-            SendSync(ConvertToHypnoLogObject(tuple.Item2, name: tuple.Item1, tags: tags.tagsArray));
-        }
+        //[Conditional("DEBUG")]
+        //public static void LogSync(this TagsCollection tags, string format, params object[] args)
+        //{
+        //    SendSync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
+        //}
+
+        //[Conditional("DEBUG")]
+        //public static void NamedLog<T>(this TagsCollection tags, T obj, string type = null)
+        //{
+        //    var tuple = ExtractNameAndValue(obj);
+        //    SendAsync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1, tags: tags.tagsArray));
+        //}
+
+        //[Conditional("DEBUG")]
+        //public static void NamedLogSync<T>(this TagsCollection tags, T obj, string type = null)
+        //{
+        //    var tuple = ExtractNameAndValue(obj);
+        //    SendSync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1, tags: tags.tagsArray));
+        //}
 
         #endregion Extension for TagsCollection
     }
