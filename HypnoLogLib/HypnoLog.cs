@@ -21,7 +21,7 @@ namespace HypnoLogLib
         /// <summary>
         /// True if initialization process happed successful
         /// </summary>
-        public static bool IsInitializes { get; private set; }
+        public static bool IsInitialized { get; private set; }
 
         // TODO: find better way to keep logger on/off ? with a global flag?
         /// <summary>
@@ -36,6 +36,11 @@ namespace HypnoLogLib
         /// </summary>
         public static bool IsInFaultedSate { get; private set; }
 
+        /// <summary>
+        /// Counter for how many errors occurred
+        /// </summary>
+        public static int ErrorsCounter { get; private set; }
+
         private static Uri ServerUri { get; set; }
 
         /// <summary>
@@ -47,7 +52,8 @@ namespace HypnoLogLib
 
         static HypnoLog()
         {
-            IsInitializes = false;
+            IsInitialized = false;
+            ErrorsCounter = 0;
             IsOn = true;
             IsInFaultedSate = false;
             // TODO: let user set default server by config
@@ -62,9 +68,11 @@ namespace HypnoLogLib
 
         #region Events
         /// <summary>
-        /// Occurs when the HypnoLog couldn't communicate with the server.
+        /// Occurs when the HypnoLog encounter in some error.
+        /// (such as, couldn't communicate with the server)
         /// </summary>
-        public static event EventHandler ErrorOccurred;
+        public static event Action<object, Exception> ErrorOccurred;
+
         #endregion
 
         #region Public methods
@@ -84,16 +92,18 @@ namespace HypnoLogLib
         [Conditional("DEBUG")]
         public static void Initialize(bool shouldRedirect = false, string serverUri = null)
         {
-            // TODO: make Initialize sync (blocking) (?)
-            // or make sure no logging will happen before initialization done
-            // otherwise Initialize() might be called, not completed, Log() will be called
-            // and will start again another initialization.
+            // TODO: make Initialization async, but blocking other logging operations.
+            // this means, initialization will not block the code outer flow,
+            // but if some logging operation was called, before initialization complete, it will wait.
+            // Also, provide a sync Initialize() version, for sync logging.
+
+            // TODO: add error handling callback into init method
 
             // exit if Off
             if (!IsOn) return;
 
             // Initialize only once
-            if (IsInitializes)
+            if (IsInitialized)
             {
                 Debug.Print("HypnoLog: Initialization was called more than once");
                 return;
@@ -118,7 +128,7 @@ namespace HypnoLogLib
             // TODO: add here await (?)
             SendAsync(ConvertToHypnoLogObject(obj: Guid.NewGuid(), type: "newSession"), checkInitialized: false);
 
-            IsInitializes = true;
+            IsInitialized = true;
             if(shouldRedirect) RedirectConsoleOutput();
         }
 
@@ -254,41 +264,40 @@ namespace HypnoLogLib
 
         #region Private methods
 
+        // TODO: combine SendSync and SendAsync to be with more shared code.
+        // make the sending methods agnostic to the logged object,
+        // just receive or (a) already serialized JSON string which can be sent
+        // or (b) C# object which can be serialized to JSON string and then sent
+        // probably (a) will be more flexible (leaving the serialization logic out)
+
         /// <summary>
         /// Sending the given object synchronously to the server.
-        /// Doesn't start a new task when sending the data to the server.
-        /// Note: HypnoLog must be initialized. Initialization will not happen here.
+        /// Note: This method initialize HypnoLog if not initialized.
         /// </summary>
         /// <param name="json">HypnoLog-valid-object to be logged</param>
-        internal static void SendSync(object json)
+        /// <param name="checkInitialized">Should initialization be checked before sending the data</param>
+        internal static void SendSync(object json, bool checkInitialized = true)
         {
-            // exit if Off
-            if (!IsOn) return;
-            // if initialization was not occurred yet, return.
-            if (!IsInitializes)
-            {
-                // TODO: Initialize here as we do in SendAsync. Just make Initialize sync as well.
-                Debug.Print("HypnoLog Error: SendSync was called before initialization");
-                return;
-            }
+            // check conditions before sending (such as initialized, set to `On`,..)
+            if (!CheckSendCondition(checkInitialized)) return;
 
-            // create HTTP Client and send HTTP post request
-            var client = new WebClient();
-            client.Headers[HttpRequestHeader.ContentType] = "application/json";
-            client.Headers[HttpRequestHeader.Accept] = "applicaton/json";
-
-            // convert json object to string.
-            var data = JsonConvert.SerializeObject(json, JsonSerializerSettings);
-
-            Uri remote = new Uri(ServerUri.ToString() + "logger/in");
             try
             {
+                // create HTTP Client and send HTTP post request
+                var client = new WebClient();
+                client.Headers[HttpRequestHeader.ContentType] = "application/json";
+                client.Headers[HttpRequestHeader.Accept] = "applicaton/json";
+
+                // convert json object to string.
+                var data = JsonConvert.SerializeObject(json, JsonSerializerSettings);
+
+                Uri remote = new Uri(ServerUri.ToString() + "logger/in");
                 // TODO: check the  status.
                 var status = client.UploadString(remote, data);
             }
-            catch
+            catch (Exception ex)
             {
-                OnErrorOccurred();
+                OnErrorOccurred(json, ex);
                 Debug.Print("HypnoLog: Error sending data");
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
@@ -301,35 +310,47 @@ namespace HypnoLogLib
         /// <param name="json">HypnoLog-valid-object to be logged</param>
         /// <param name="checkInitialized">Should initialization be checked before sending the data</param>
         /// </summary>
-        internal static async Task<string> SendAsync(object json, bool checkInitialized = true)
+        internal static async Task<bool> SendAsync(object json, bool checkInitialized = true)
         {
-            // exit if Off
-            if (!IsOn) return null;
-            // if initialization was not occurred yet, do it.
-            if (checkInitialized && !IsInitializes) Initialize();
+            // check conditions before sending (such as initialized, set to `On`,..)
+            if (!CheckSendCondition(checkInitialized)) return false;
 
-            // create HTTP Client and send HTTP post request
-            var client = new HttpClient();
-            // NOTE: the data sent to server must be valid JSON string
-            // NOTE: getting exception here? see project FAQ in README.md
-            var result = client.PostAsJsonAsync(ServerUri.ToString() + "logger/in", json).Result;
-
-            string resultContent = result.Content.ReadAsStringAsync().Result;
-
+            HttpResponseMessage result = null;
             try
             {
+                // create HTTP Client and send HTTP post request
+                var client = new HttpClient();
+                // NOTE: the data sent to server must be valid JSON string
+                // NOTE: getting exception here? see project FAQ in README.md
+                result = client.PostAsJsonAsync(ServerUri.ToString() + "logger/in", json).Result;
+
+                //string resultContent = result.Content.ReadAsStringAsync().Result;
                 var response = result.EnsureSuccessStatusCode();
             }
-            catch
+            catch (Exception ex)
             {
-                OnErrorOccurred();
-                Debug.Print("HypnoLog: Error sending data. result: " + result.StatusCode.ToString());
+                OnErrorOccurred(json, ex);
+                Debug.Print("HypnoLog: Error sending data");
                 // TODO: do something on error (stop logging? log again?..)
                 //IsInFaultedSate = true;
+                return false;
             }
 
-            // TODO: return something useful (true/false?) or nothing...
-            return resultContent;
+            return true;
+        }
+
+        private static bool CheckSendCondition(bool checkInitialized = true)
+        {
+            // exit if Off
+            if (!IsOn) return false;
+            // if initialization was not occurred yet, do it.
+            if (checkInitialized && !IsInitialized)
+            {
+                Initialize();
+                // check if initialization was successful
+                if (!IsOn || !IsInitialized || IsInFaultedSate) return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -407,14 +428,15 @@ namespace HypnoLogLib
             {
                 try
                 {
-                    // TODO: check server status is 200
-                    var temp = client.GetStringAsync(ServerUri.ToString() + "logger/status").Result;
+                    var respons = client.GetStringAsync(ServerUri.ToString() + "logger/status").Result;
+                    if (respons != "200")
+                        throw new Exception("Server response code is not 200. result: " + respons);
                     return true;
                 }
                 catch (Exception ex)
                 {
                     // TODO: log something useful
-                    OnErrorOccurred();
+                    OnErrorOccurred(null, ex);
                     Debug.Print("HypnoLog: error while checking if destination server is up: " + ex.Message);
                     return false;
                 }
@@ -442,7 +464,7 @@ namespace HypnoLogLib
         /// This is done by setting the System.Console.Out and System.Control.Error
         /// property to internal HypnoLog text writer.
         /// </summary>
-        private static void RedirectConsoleOutput()
+        public static void RedirectConsoleOutput()
         {
             Console.WriteLine("Console output redirected to HypnoLog.");
             Debug.Print("Console output redirected to HypnoLog.");
@@ -455,9 +477,22 @@ namespace HypnoLogLib
             Console.SetError(writer);
         }
 
-        private static void OnErrorOccurred()
+        private static void OnErrorOccurred(object obj = null, Exception ex = null)
         {
-            if (ErrorOccurred != null) ErrorOccurred(null, EventArgs.Empty);
+            ErrorsCounter++;
+            // TODO: Do something we have repeated logging errors, like disable HypnoLog (?)
+
+            // If user provide error handling method, call it
+            if (ErrorOccurred != null)
+            {
+                ErrorOccurred(obj, ex);
+            }
+            // otherwise, use some default error handling logic
+            else
+            {
+                Console.WriteLine(  "HypnoLog error occurred: {0}", (ex != null ? ex.ToString() : String.Empty));
+                Debug.Print(        "HypnoLog error occurred: {0}", (ex != null ? ex.ToString() : String.Empty));
+            }
         }
 
         #endregion Private methods
@@ -503,52 +538,5 @@ namespace HypnoLogLib
         }
 
         #endregion Type related help methods
-
-        #region Extensions for TagsCollection
-
-        // TODO: move all those Extension methods to TagsCollection class, so they can be used directly on TagsCollection object.
-        // This is required if we want to allow simple syntax as HL.Tag(..).Log(..)
-        // and allow the user not to call "using" for all HypnoLogLib
-
-
-        //[Conditional("DEBUG")]
-        //public static void Log(this TagsCollection tags, object obj, string type = null)
-        //{
-        //    SendAsync(ConvertToHypnoLogObject(obj: obj, tags: tags.tagsArray, type: null));
-        //}
-
-        //[Conditional("DEBUG")]
-        //public static void LogSync(this TagsCollection tags, object obj, string type = null)
-        //{
-        //    SendSync(ConvertToHypnoLogObject(obj: obj, tags: tags.tagsArray, type: type));
-        //}
-
-        //[Conditional("DEBUG")]
-        //public static void Log(this TagsCollection tags, string format, params object[] args)
-        //{
-        //    SendAsync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
-        //}
-
-        //[Conditional("DEBUG")]
-        //public static void LogSync(this TagsCollection tags, string format, params object[] args)
-        //{
-        //    SendSync(ConvertToHypnoLogObject(String.Format(format, args), tags: tags.tagsArray));
-        //}
-
-        //[Conditional("DEBUG")]
-        //public static void NamedLog<T>(this TagsCollection tags, T obj, string type = null)
-        //{
-        //    var tuple = ExtractNameAndValue(obj);
-        //    SendAsync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1, tags: tags.tagsArray));
-        //}
-
-        //[Conditional("DEBUG")]
-        //public static void NamedLogSync<T>(this TagsCollection tags, T obj, string type = null)
-        //{
-        //    var tuple = ExtractNameAndValue(obj);
-        //    SendSync(ConvertToHypnoLogObject(obj: tuple.Item2, type: type, name: tuple.Item1, tags: tags.tagsArray));
-        //}
-
-        #endregion Extension for TagsCollection
     }
 }

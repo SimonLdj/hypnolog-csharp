@@ -15,6 +15,18 @@ namespace HypnoLogExample
         {
             // HypnoLog C# Advanced usage examples:
 
+            // == error handling ==
+            // Note: this is an experimental feature
+
+            // You can subscribe to HypnoLog errors to provide your own way of handling such situations
+            // Note: it is best to provide an Error handling function before initializing HypnoLog,
+            // this will enable you to catch initialization errors as well.
+            // TODO: allow passing error-handling-function in initialization method as argument.
+            HL.ErrorOccurred += (obj, exception) =>
+            {
+                Console.WriteLine("Couldn't log using HypnoLog.\nObject: {0}\nError: {1}", obj, exception);
+            };
+
             // == Initializing ==
             // Note: this is an experimental feature
 
@@ -24,10 +36,16 @@ namespace HypnoLogExample
             // of new session in a proper way, by logging "new session" message.
             // If Initialize was not invoked manually, it will be called implicitly at the first
             // logging action.
-            HL.Initialize(shouldRedirect: true, serverUri:"http://localhost:7000/");
+            HL.Initialize(serverUri:"http://localhost:7000/", shouldRedirect: false);
             // Also you can call initialization without parameters. Default server will be used (http://localhost:7000/).
-            // Setting shouldRedirect to true, will redirect all System.Console output to HypnoLog.
+            // Setting `shouldRedirect` as `true` equivalent of calling `RedirectConsoleOutput()`, see following.
+
+            // == Redirecting Console output ==
+            // Note: this is an experimental feature
+
+            // Calling `RedirectConsoleOutput()` will redirect all `System.Console` output to HypnoLog.
             // This can be useful if u already have a program with a lot of output to the console.
+            //HL.RedirectConsoleOutput();
 
             // == Logging ==
             // Note: this is an experimental feature
