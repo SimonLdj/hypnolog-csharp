@@ -50,14 +50,16 @@ namespace HypnoLogLib
 
         #endregion Properties & Data mambers
 
+        /// <summary>
+        /// Static constructor.
+        /// Called by .NET framework when class is first accessed.
+        /// </summary>
         static HypnoLog()
         {
             IsInitialized = false;
             ErrorsCounter = 0;
             IsOn = true;
             IsInFaultedSate = false;
-            // TODO: let user set default server by config
-            ServerUri = new Uri("http://localhost:7000/");
 
             // Create some default setting for JSON serialization
             // TODO: let user set JSON serialization settings as well (make property public? via config file?)
@@ -87,10 +89,11 @@ namespace HypnoLogLib
         /// If Initialize was not invoked manually, it will be called implicitly at the first
         /// logging action.
         /// </summary>
-        /// <param name="shouldRedirect">If given System.Console output will be redirected to HypnoLog</param>
-        /// <param name="serverUri">If given, server URL will be changed.</param>
+        /// <param name="host">HypnoLog server host name. Default is `localhost`</param>
+        /// <param name="port">HypnoLog server port number. Default is `7000`</param>
+        /// <param name="shouldRedirect">If given `System.Console` output will be redirected to HypnoLog. Default is false.</param>
         [Conditional("DEBUG")]
-        public static void Initialize(bool shouldRedirect = false, string serverUri = null)
+        public static void Initialize(string host = "localhost", ushort port = 7000, bool shouldRedirect = false)
         {
             // TODO: make Initialization async, but blocking other logging operations.
             // this means, initialization will not block the code outer flow,
@@ -109,11 +112,8 @@ namespace HypnoLogLib
                 return;
             }
 
-            // Set new server URL if given
-            if (serverUri != null)
-            {
-                ServerUri = new Uri(serverUri);
-            }
+            // Set server URL if given
+            ServerUri = new Uri(String.Format("http://{0}:{1}/", host, port));
 
             // Do not continue if server is down
             if (!IsServerUp())
@@ -154,13 +154,21 @@ namespace HypnoLogLib
 
         /// <summary>
         /// Log the given object.
-        /// This is the most simple way to do that.
         /// </summary>
+        /// <param name="obj">Object to be logged</param>
+        /// <param name="type">String represent the type of the logged object, will determine how the object is visualized. If not provided, `object` type will be used</param>
         [Conditional("DEBUG")]
         public static void Log(object obj, string type = null)
         {
             SendAsync(ConvertToHypnoLogObject(obj: obj, type: type));
         }
+
+        // TODO: consider, instead of duplicating all the Log function with a "sync" version,
+        // providing some ..Log(..).Sync(); syntax.
+        // For this all async log function should return a value, yes, so conditional debug
+        // connot be used. maybe check for debug mode only once while initializing,
+        // and then we can also provide by config whether we want to use HL only in debug
+        // mode or in any mode.
 
         /// <summary>
         /// Log the given object. Synchronously.
@@ -169,6 +177,8 @@ namespace HypnoLogLib
         /// Note that using this method will block for each HTTP request to
         /// the server and shouldn't be used normally.
         /// </summary>
+        /// <param name="obj">Object to be logged</param>
+        /// <param name="type">String represent the type of the logged object, will determine how the object is visualized. If not provided, `object` type will be used</param>
         [Conditional("DEBUG")]
 
         public static void LogSync(object obj, string type = null)
@@ -180,6 +190,7 @@ namespace HypnoLogLib
         /// Log the given string.
         /// Replaces the format item in a specified string with the string representation
         /// of a corresponding object in a specified array.
+        /// Logging type will be `string`.
         /// </summary>
         [Conditional("DEBUG")]
         public static void Log(string format, params object[] args)
@@ -207,6 +218,8 @@ namespace HypnoLogLib
         /// Variable should be warped in new{} statement (Anonymous object) like this:
         /// NamedLog(new { variable })
         /// </summary>
+        /// <param name="obj">Object to be logged</param>
+        /// <param name="type">String represent the type of the logged object, will determine how the object is visualized. If not provided, `object` type will be used</param>
         [Conditional("DEBUG")]
         public static void NamedLog<T>(T obj, string type = null)
         {
@@ -221,6 +234,8 @@ namespace HypnoLogLib
         /// Variable should be warped in new{} statement (Anonymous object) like this:
         /// NamedLog(new { variable })
         /// </summary>
+        /// <param name="obj">Object to be logged</param>
+        /// <param name="type">String represent the type of the logged object, will determine how the object is visualized. If not provided, `object` type will be used</param>
         [Conditional("DEBUG")]
         public static void NamedLogSync<T>(T obj, string type = null)
         {
@@ -291,7 +306,7 @@ namespace HypnoLogLib
                 // convert json object to string.
                 var data = JsonConvert.SerializeObject(json, JsonSerializerSettings);
 
-                Uri remote = new Uri(ServerUri.ToString() + "logger/in");
+                Uri remote = new Uri(baseUri: ServerUri, relativeUri: "logger/in");
                 // TODO: check the  status.
                 var status = client.UploadString(remote, data);
             }
@@ -322,7 +337,7 @@ namespace HypnoLogLib
                 var client = new HttpClient();
                 // NOTE: the data sent to server must be valid JSON string
                 // NOTE: getting exception here? see project FAQ in README.md
-                result = client.PostAsJsonAsync(ServerUri.ToString() + "logger/in", json).Result;
+                result = client.PostAsJsonAsync(new Uri(baseUri: ServerUri, relativeUri: "logger/in"), json).Result;
 
                 //string resultContent = result.Content.ReadAsStringAsync().Result;
                 var response = result.EnsureSuccessStatusCode();
@@ -428,7 +443,7 @@ namespace HypnoLogLib
             {
                 try
                 {
-                    var respons = client.GetStringAsync(ServerUri.ToString() + "logger/status").Result;
+                    var respons = client.GetStringAsync(new Uri(baseUri: ServerUri, relativeUri: "logger/status")).Result;
                     if (respons != "200")
                         throw new Exception("Server response code is not 200. result: " + respons);
                     return true;

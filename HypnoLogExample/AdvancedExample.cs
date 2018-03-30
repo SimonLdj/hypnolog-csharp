@@ -36,7 +36,10 @@ namespace HypnoLogExample
             // of new session in a proper way, by logging "new session" message.
             // If Initialize was not invoked manually, it will be called implicitly at the first
             // logging action.
-            HL.Initialize(serverUri:"http://localhost:7000/", shouldRedirect: false);
+            HL.Initialize(
+                host: "localhost",
+                port: 7000,
+                shouldRedirect: false);
             // Also you can call initialization without parameters. Default server will be used (http://localhost:7000/).
             // Setting `shouldRedirect` as `true` equivalent of calling `RedirectConsoleOutput()`, see following.
 
