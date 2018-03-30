@@ -195,6 +195,13 @@ namespace HypnoLogLib
         [Conditional("DEBUG")]
         public static void Log(string format, params object[] args)
         {
+            // If no string given, log as `null` object
+            if (format == null)
+            {
+                Log(obj: "null", type: "object");
+                return;
+            }
+
             SendAsync(ConvertToHypnoLogObject(String.Format(format, args)));
         }
 
@@ -210,6 +217,13 @@ namespace HypnoLogLib
         [Conditional("DEBUG")]
         public static void LogSync(string format, params object[] args)
         {
+            // If no string given, log as `null` object
+            if (format == null)
+            {
+                Log(obj: "null", type: "object");
+                return;
+            }
+
             SendSync(ConvertToHypnoLogObject(String.Format(format, args)));
         }
 
@@ -383,6 +397,12 @@ namespace HypnoLogLib
         /// <param name="tags">Optional. Tags to include in the Log Object</param>
         internal static dynamic ConvertToHypnoLogObject(object obj, string type = null, string name = null, string[] tags = null)
         {
+            if (obj == null)
+            {
+                obj = "null";
+                type = "object";
+            }
+
             // TODO: use some sort of HypnoLog-log object that extend ExpandoObject but require type and data properties.
             dynamic json = new ExpandoObject();
             json.data = obj;
