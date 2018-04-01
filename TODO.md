@@ -1,9 +1,13 @@
 HypnoLog-csharp TODO list
 ================================
 
+- Add some ready-to-use dll to the repo, write about it in the readme.
+- create nuget
+
+- Make it work in Visual Studio Code
+
 - let user provide handling method when HypnoLog is disabled (let's say server
   is down, so HypnoLog diabled, and all logging just ignored)
-- Add some ready-to-use dll to the repo, write about it in the readme.
 
 - Do not use Nuget at all (just reference to dll files) because when working off-line (without nuget server) VS still display error.
 - Handle errors when logging null value

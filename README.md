@@ -1,15 +1,40 @@
-HypnoLog C# library
+HypnoLog C# Library
 ============================
 
-# 1. What is this?
-This is a library for C# projects to easily use *HypnoLog*.
-This library can be included as part of the project in which you want to use *HypnoLog*.
-You can Include the library by
-(a) adding reference to the `.dll` file
-or (b) using Nuget Package Manager
-or (c) include the source code as another project in your solution.
+## What is HypnoLog?
+*Get Hypnotized While Logging*
 
-# 2. I get exception such as "Could not load file or assembly":
+*HypnoLog* allows you to fast and easily visualize your application data/objects while debugging. From any environment, in any language. Forget about those black text-based console debug-printing back from the 70's. 
+
+**See [HypnoLog main repo](https://github.com/SimonLdj/hypnolog-server).**
+
+What it looks like, visualizing your data in the browser:
+![alt text](/doc/images/screenshot_hypnolog-csharp-example.png "HypnoLog UI screenshot")
+
+## About HypnoLog C# Library
+Logging using *HypnoLog* means sending you data as JSON HTTP request to HypnoLog server. This library wraps all of those into simple easy to use C# functions.
+To use *HypnoLog* in your C# project you can include the library by (a) adding reference to the `.dll` file or (b) using Nuget Package Manager or (c) include the source code as another project in your solution.
+
+## Usage Examples
+Really simple. Import HypnoLog:
+```csharp
+using HL = HypnoLogLib.HypnoLog;
+```
+Log:
+```csharp
+// Log a string
+HL.Log("Hello HypnoLog from C#!");
+
+// log array of numbers as a graph (plot)
+HL.Log(new []{1, 2, 3}, "plot");
+```
+
+For more examples, see [Basic Example](/HypnoLogExample/BasicExample.cs) and [Advanced Example](HypnoLogExample/AdvancedExample.cs) code files.
+
+Read how to view the log and more about *HypnoLog* in [HypnoLog main repo page](https://github.com/SimonLdj/hypnolog-server).
+
+## Troubleshooting
+### 1. I get exception such as "Could not load file or assembly":
 
 This exception typically happens at run time.
 Example of such exception:
@@ -40,11 +65,11 @@ Do this by adding the following configuration to `App.config` file of your *Star
 
 Note `<runtime>` tag should be under the `<configuration>` root tag.
 
-See this blog post for more information:  
-http://blog.myget.org/post/2014/11/27/Could-not-load-file-or-assembly-NuGet-Assembly-Redirects.aspx
+See this blog post for more information: http://blog.myget.org/post/2014/11/27/Could-not-load-file-or-assembly-NuGet-Assembly-Redirects.aspx
 
-# 3. I don't see some of objects properties when logging it
+### 2. I don't see some of object's properties when logging it
 
 HypnoLog uses `Newtonsoft.Json` to serialize objects as JSON.
 Check the `JsonSerializerSettings` object used by HypnoLog (created in constructor).
 You can try modify the setting such as `ReferenceLoopHandling` (might be set to ignore), `MaxDepth`,...
+
