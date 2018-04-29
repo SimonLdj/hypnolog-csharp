@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 // Do this to easily use HypnoLog as HL in your code
-using HL = HypnoLogLib.HypnoLog;
+using HL = HypnoLog.HypnoLog;
 
 namespace HypnoLogExample
 {

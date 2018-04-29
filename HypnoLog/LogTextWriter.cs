@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HypnoLogLib
+namespace HypnoLog
 {
     /// <summary>
     /// Override all TextWriter methods to log directly using HypnoLog.

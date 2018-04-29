@@ -69,9 +69,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HypnoLogLib\HypnoLogLib.csproj">
+    <ProjectReference Include="..\HypnoLog\HypnoLog.csproj">
       <Project>{8da592a9-faec-4abb-a344-94a8426a606b}</Project>
-      <Name>HypnoLogLib</Name>
+      <Name>HypnoLog</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
