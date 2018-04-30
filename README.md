@@ -11,65 +11,52 @@ HypnoLog C# Library
 What it looks like, visualizing your data in the browser:
 ![alt text](/doc/images/screenshot_hypnolog-csharp-example.png "HypnoLog UI screenshot")
 
-## About HypnoLog C# Library
-Logging using *HypnoLog* means sending you data as JSON HTTP request to HypnoLog server. This library wraps all of those into simple easy to use C# functions.
-To use *HypnoLog* in your C# project you can include the library by (a) adding reference to the `.dll` file or (b) using Nuget Package Manager or (c) include the source code as another project in your solution.
+## About HypnoLog-C# Library
+Logging using *HypnoLog* means sending your data as JSON HTTP request to
+HypnoLog server. This library wraps all of those into simple easy to use
+functions.
 
-## Usage Examples
-Really simple. Import HypnoLog:
-```csharp
-using HL = HypnoLog.HypnoLog;
+## Installation
+The easiest way to get *HypnoLog-CSharp* is via [NuGet](https://www.nuget.org/):
 ```
-Log:
-```csharp
-// Log a string
-HL.Log("Hello HypnoLog from C#!");
+Install-Package HypnoLog
+```
+Or use Nuget Package Manager UI (Visual Studio).
 
-// log array of numbers as a graph (plot)
-HL.Log(new []{1, 2, 3}, "plot");
+If you haven't use *HypnoLog* before, [setup HypnoLog server](https://github.com/SimonLdj/hypnolog-server#setup-hypnolog-server) on your machine:
+```bash
+npm install -g hypnolog-server
 ```
+*Note:* you will need [Node.js](https://nodejs.org/en/) installed on your machine first.
+
+## Usage
+1. Start [HypnoLog Server]:
+    ```bash
+    hypnolog-server
+    ```
+2. View output: open [`http://127.0.0.1:7000/client.html`](http://127.0.0.1:7000/client.html) in your browser.
+3. Add `using` for HypnoLog in your code:
+    ```csharp
+    using HL = HypnoLog.HypnoLog;
+    ```
+4. Log:
+    ```csharp
+    // Log a string
+    HL.Log("Hello HypnoLog from C#!");
+
+    // log array of numbers as a graph (plot)
+    HL.Log(new[] { 1, 2, 3 }, "plot");
+    ```
 
 For more examples, see [Basic Example](/HypnoLogExample/BasicExample.cs) and [Advanced Example](HypnoLogExample/AdvancedExample.cs) code files.
 
 Read how to view the log and more about *HypnoLog* in [HypnoLog main repo page](https://github.com/SimonLdj/hypnolog-server).
 
-## Troubleshooting
-### 1. I get exception such as "Could not load file or assembly":
+___
 
-This exception typically happens at run time.
-Example of such exception:
+### Troubleshooting
+See [Troubleshooting] page.
 
-    A first chance exception of type 'System.IO.FileNotFoundException' occurred in System.Net.Http.Formatting.dll
-    Additional information: Could not load file or assembly 'Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed' or one of its dependencies. The system cannot find the file specified.
-    
 
-This caused by faulty assembly redirects. (The assembly used using Nuget packages).
-
-Specifically the exception above happens because `Microsoft.AspNet.WebApi.Client package`
-looking for `Newtonsoft.Json` in older version than it is (6.0.0.0 instead of 8.0.0.0 for example).
-
-**To fix this issue, open Package Manager Console in Visual Studio and type `Get-Project -All | Add-bindingRedirect`**
-
-Or the manual solution:
-The solution is to specifically configure to use newer version of `Newtonsoft.Json` package.
-Do this by adding the following configuration to `App.config` file of your *StartUp Project*
-
-    <runtime>
-        <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
-            <dependentAssembly>
-                <assemblyIdentity name="Newtonsoft.Json" publicKeyToken="30ad4fe6b2a6aeed" culture="neutral" />
-                <bindingRedirect oldVersion="0.0.0.0-8.0.0.0" newVersion="8.0.0.0" />
-            </dependentAssembly>
-        </assemblyBinding>
-    </runtime>
-
-Note `<runtime>` tag should be under the `<configuration>` root tag.
-
-See this blog post for more information: http://blog.myget.org/post/2014/11/27/Could-not-load-file-or-assembly-NuGet-Assembly-Redirects.aspx
-
-### 2. I don't see some of object's properties when logging it
-
-HypnoLog uses `Newtonsoft.Json` to serialize objects as JSON.
-Check the `JsonSerializerSettings` object used by HypnoLog (created in constructor).
-You can try modify the setting such as `ReferenceLoopHandling` (might be set to ignore), `MaxDepth`,...
-
+[Troubleshooting]: doc/Troubleshooting.md
+[HypnoLog Server]: https://github.com/SimonLdj/hypnolog-server
