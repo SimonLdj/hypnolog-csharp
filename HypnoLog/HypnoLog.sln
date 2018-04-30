@@ -3,9 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HypnoLog", "HypnoLog\HypnoLog.csproj", "{8DA592A9-FAEC-4ABB-A344-94A8426A606B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HypnoLogExample", "HypnoLogExample\HypnoLogExample.csproj", "{3F8AF3F7-4D30-40EC-AC19-56B4F492638D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HypnoLog", "HypnoLog.csproj", "{8DA592A9-FAEC-4ABB-A344-94A8426A606B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +15,6 @@ Global
 		{8DA592A9-FAEC-4ABB-A344-94A8426A606B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DA592A9-FAEC-4ABB-A344-94A8426A606B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DA592A9-FAEC-4ABB-A344-94A8426A606B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3F8AF3F7-4D30-40EC-AC19-56B4F492638D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3F8AF3F7-4D30-40EC-AC19-56B4F492638D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3F8AF3F7-4D30-40EC-AC19-56B4F492638D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3F8AF3F7-4D30-40EC-AC19-56B4F492638D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

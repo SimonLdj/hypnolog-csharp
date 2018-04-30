@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>HypnoLog</id>
+    <version>0.1.0</version>
+    <title>HypnoLog</title>
+    <authors>Simon Ldj</authors>
+    <owners>Simon Ldj</owners>
+    <licenseUrl>https://github.com/SimonLdj/hypnolog-csharp/blob/master/LICENSE.md</licenseUrl>
+    <projectUrl>https://github.com/SimonLdj/hypnolog-csharp</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>C# wrapper for quick logging using HypnoLog</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags></tags>
+    <packageTypes>
+        <packageType name="Dependency" />
+    </packageTypes>
+  </metadata>
+  <files>
+    <file src="..\README.md" target="" />
+  </files>
+</package>

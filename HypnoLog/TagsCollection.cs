@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace HypnoLogLib
+namespace HypnoLog
 {
     public class TagsCollection
     {

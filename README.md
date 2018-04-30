@@ -18,7 +18,7 @@ To use *HypnoLog* in your C# project you can include the library by (a) adding r
 ## Usage Examples
 Really simple. Import HypnoLog:
 ```csharp
-using HL = HypnoLogLib.HypnoLog;
+using HL = HypnoLog.HypnoLog;
 ```
 Log:
 ```csharp
